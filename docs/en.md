@@ -1,61 +1,171 @@
-# Demo Devices Template
+# EV charging stations (IRVE)
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+The **live availability of public EV charging stations** around your home, in France, from the national
+IRVE open data (Infrastructures de Recharge pour Véhicules Électriques): the static base of
+data.gouv.fr (address, operator, power, connectors) matched with the national consolidation of the
+real-time states of transport.data.gouv.fr. **No account, no key.**
+
+Unofficial integration, not affiliated with the charging operators, data.gouv.fr or
+transport.data.gouv.fr. Developed without an electric car at hand: the data was checked live on
+2026-10-22, but feedback is welcome.
 
 ## What you get
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+- One **device per station** you add: free charge points, charge points, out of service, maximum
+  power and data age.
+- A **widget** "Charging stations": your stations on one row each, green when a point is free, red
+  when everything is taken or out of service.
+- Three **scene triggers**: a charge point becomes free, station all taken, station out of service.
+- A **scene action**: find, among your stations, the nearest one with a free point, with a sentence
+  ready to send.
+
+## Requirements
+
+- Gladys Assistant **5.2.0** or later.
+- A **located** house in Gladys (**Settings → Houses**, click on the map), or a position typed in
+  the configuration.
+- Internet access from Gladys. No account, no API key.
+
+## Installation
+
+1. In Gladys, open **Integrations → Install from GitHub**.
+2. Paste the address `https://github.com/guim31/gladys-irve` and install.
+3. The install screen asks for access to the **position of your houses**: it only serves to find
+   the stations nearby. The position does not leave Gladys: only the search box is sent to the
+   data.gouv.fr API.
 
 ## Configuration
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+### Settings
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+- **House**: the center of the search. Empty: the first located house.
+- **Other position** (optional): `latitude, longitude`, your workplace for example. It replaces the
+  house.
+- **Radius**: 1, 2, 5, 10 or 20 km around the position (5 km by default). In a very dense area the
+  radius is reduced automatically; the "Status" action says so.
+- **Minimum power** and **Connector**: only the matching charge points are counted (a station of
+  four points, two of them Combo CCS, counts 2 points with the "Combo CCS" filter). A station without
+  any matching point is not offered.
+- **Other stations**: station ids (`id_station_itinerance`), separated by commas, wherever they are
+  (20 at most). The **Find a station** action gives them.
+- **Refresh**: every 5, 10 (default) or 15 minutes.
+- **Language of names and messages**: French by default. Feature names are fixed when the device is
+  added.
 
-## Actions
+### Adding stations
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+Save the configuration: the stations of the circle **that publish their live state** appear in the
+**Discover** tab of the integration, nearest first (30 at most), together with the listed stations.
+Add the ones you use to Gladys: they are your **followed stations**. The widget, the triggers and the
+scene action only deal with them.
 
-## Scenes
+To follow a station far from home, run the **Find a station** action with a town or street name,
+copy the id (`FR…`) into **Other stations**, save: it appears in Discover.
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+### Checking
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+The **Status** action shows the position and radius used, the number of stations found and how many
+publish live data, the age of the last reading, the last error and the number of stations added.
 
-## Dashboard
+## Devices
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+Each station added becomes a read-only device:
+
+| Feature            | Value                                                                  |
+| ------------------ | ---------------------------------------------------------------------- |
+| Free charge points | points in service and free                                             |
+| Charge points      | points of the station (matching the filters)                           |
+| Out of service     | points out of service                                                  |
+| Maximum power      | power of the most powerful point, in kW                                |
+| Data age           | minutes since the newest state published by the operator (7 days max.) |
+
+An "occupied" or "reserved" point is neither free nor out of service; a point whose state is
+"unknown", or whose last state is more than 7 days old, is not counted anywhere. Without any point
+published live, only "Charge points" and "Maximum power" are updated.
+
+## Dashboard widget
+
+The **Charging stations** widget shows one row per followed station (10 at most, or the ones picked
+in its settings): "2 / 4 free" in green, "all taken" or "out of service" in red, and in grey "data
+out of date" (no state for 48 h), "no live data" or "no matching point".
+
+## Scene triggers
+
+Each trigger can be limited to some stations (empty: any followed station) and gives the variables
+station name, address, free points, charge points, out of service, maximum power and distance (km).
+
+- **A charge point becomes free**: the station has more free points than at the previous reading.
+  The **Station before** field reacts only if it **was all taken**, or on the contrary if it already
+  had a free point.
+- **Station all taken**: every point in service is now taken.
+- **Station out of service**: every point with a known state is out of service.
+
+The triggers only compare two close readings: nothing fires when the data comes back after an
+outage, nor for a station whose data is out of date.
+
+## Scene action
+
+**Find the nearest free station**: among your followed stations (all of them, or the ones picked),
+the nearest to the configured position with a free point and recent data. Outputs: `found` (1 or
+0), `sentence` (for example "TOULOUSE - 9 Boulevard d'Arcole: 2 free charge points out of 4, up to
+22.1 kW, 0.7 km away."), station name, address, free points, charge points, maximum power, distance
+in km. Use "Continue only if" with `found` = 1 before sending the sentence.
+
+## Scene examples
+
+- **Tell me when the charger of my street is free**: trigger "A charge point becomes free", the
+  station of your street, "Station before: was all taken"; action "Send a message" with the station
+  name and the number of free points.
+- **Where to charge before leaving?**: manual trigger or morning alarm; action "Find the nearest
+  free station", then "Continue only if" `found` = 1, then send `sentence` as a message or have a
+  speaker say it.
+- **Warn me if the office station breaks down**: trigger "Station out of service" on the office
+  station; action "Send a message".
+
+## Data and refresh
+
+- **Static base**: the national consolidation of data.gouv.fr (dataset "Base nationale des IRVE",
+  updated daily), queried through the data.gouv.fr tabular API on the box around the circle, or by
+  station ids: a few hundred rows instead of the whole file. Read **once a day** and on every
+  configuration change.
+- **Dynamic data**: the national IRVE dynamic consolidation of transport.data.gouv.fr (beta), built
+  on every request from the feeds of the operators that publish one. About 125,000 charge points,
+  9 MB (1.6 MB compressed): the file is read line by line and only the points of your stations are
+  kept in memory. Read at the chosen pace (10 minutes by default, about 230 MB a day).
+- **Coverage**: many operators publish no live state yet. On 2026-10-22, in Toulouse, a little more
+  than half of the public charge points had one; depending on the city, between a third and nine out
+  of ten. Stations without live data are not offered.
+- **Age**: the timestamp is the operator's, usually the last **change** of state. A quiet station
+  may keep the same state for hours without the data being wrong: after 48 h without any change it
+  is marked out of date; a point without news for more than 7 days is ignored.
+- License: Licence Ouverte / Open Licence 2.0 (Etalab).
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **Nothing in Discover**: run **Status**. "No position": locate the house in Gladys or type a
+  position. "0 with live data": the operators of your area publish no live state; widen the radius
+  or relax the filters.
+- **Unknown station ids** in **Status**: check the id with **Find a station** (the operator may
+  have renamed the station).
+- **"Data out of date"**: the operator has published nothing for this station for 48 h.
+- **Error `tabular-api.data.gouv.fr` or `proxy.transport.data.gouv.fr`**: the service is
+  temporarily unavailable; the last values stay shown and the integration tries again at the next
+  cycle.
+- Detailed logs with the variable `LOG_LEVEL=debug`.
+
+## Limitations
+
+- Open data, without guarantee: a "free" point may be taken by the time you arrive, and some
+  operators publish wrong or old states.
+- Only the **public charging stations in France** declared in the national IRVE base.
+- No prices, no booking, no command: the integration only reads.
+- Station names are the operators', sometimes in capitals or not very telling.
+- The connector filter relies on the operator's declaration; the per-connector state is not used.
+
+## Credits
+
+- Data: [Base nationale des IRVE](https://www.data.gouv.fr/datasets/5448d3e0c751df01f85d0572/)
+  (data.gouv.fr, Etalab) and
+  [IRVE dynamic consolidation](https://transport.data.gouv.fr/datasets/685965d0ab901919e14a4a1b)
+  (transport.data.gouv.fr), Licence Ouverte 2.0.
+- Integration written by guim31, under the Apache-2.0 license.

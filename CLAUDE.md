@@ -31,16 +31,20 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only (src/app.js registers the handlers before connect())
+src/app.js                        handlers: config, poll, scan, device created, actions, scenes, widget
+src/service.js                    runtime: position, static + dynamic reads, discovery, states, triggers
+src/irve.js                       the national IRVE files: tabular API queries, dynamic CSV streamed
+src/devices.js                    the station device (features, states)
+src/http.js                       fetch with timeout and size cap, line by line reader
+src/scenes.js                     scene action `find_free`
+src/widgets.js                    dashboard widget `stations`
+src/messages.js                   every text sent from the container, en/fr/de/es
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+gladys-assistant-integration.json manifest: name, config_schema, actions, triggers, widget...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+test/fixtures/irve/               real data of 2026-10-22 (3 km around the Capitole of Toulouse)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +74,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, manifest texts, feature names, and `docs/{en,fr,de,es}.md`, kept in
+  sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +238,42 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## IRVE : données vérifiées en direct (22/10/2026)
+
+- **Statique** : consolidation data.gouv.fr du jeu `5448d3e0c751df01f85d0572`, ressource
+  « dernière version à date du schéma » `eb76d20a-…` (les ressources datées à côté changent d'id avec
+  le schéma). Lue par l'**API tabulaire** (`tabular-api.data.gouv.fr`), filtres serveur
+  `consolidated_latitude__greater/__less`, `consolidated_longitude__…`, `id_station_itinerance__in`,
+  `adresse_station__contains` (sensible à la casse), `page_size` 200, `meta.total`, `links.next`.
+  Le fichier complet fait 90 Mo (127 Mo pour la consolidation bêta de transport.data.gouv.fr) :
+  jamais téléchargé. Des points de charge apparaissent en double (deux fichiers sources) :
+  dédoublonnés par `id_pdc_itinerance`. `puissance_nominale` parfois en W. `station_deux_roues`
+  presque jamais renseigné (« Station Deux-Roues Lazare Carnot » est à `false`).
+- **Dynamique** : `proxy.transport.data.gouv.fr/resource/consolidation-nationale-irve-dynamique`
+  (ressource 84098 du jeu bêta `685965d0ab901919e14a4a1b`), **régénérée à chaque requête** (684
+  lignes changées en une minute), 125 000 lignes, 9 Mo, 1,6 Mo en gzip (`fetch` décompresse).
+  Colonnes `id_pdc_itinerance,etat_pdc,occupation_pdc,horodatage,etat_prise_type_*`. ~10 000 points
+  en double : garder le plus récent.
+- **Horodatages** : quatre formats ; ceux **sans fuseau sont en heure de Paris** (lus en UTC, 3 000
+  seraient dans le futur, aucun en heure de Paris). Certains datent de 2020 : un état de plus de
+  7 jours est ignoré (`IGNORE_MS`). L'horodatage est en général celui du dernier **changement**
+  d'état : une station calme n'est périmée qu'après 48 h (`STALE_MS`).
+- **Couverture** : 25 % des lignes ont moins d'une heure, 68 % moins de 24 h. Points de charge
+  publics avec un état en direct : Toulouse 383/720, Paris 15e 255/271, Strasbourg 263/303,
+  Bordeaux 635/1226, Lille 68/283. Des opérateurs entiers n'ont aucune dynamique (Indigo
+  `FRPKG…` : le parking du Capitole dans les fixtures) : leurs stations ne sont pas proposées.
+
+## Choix et pièges
+
+- Position : `getHouses()` (manifeste `location: true`), maison choisie par un select
+  `source: "houses"` (Gladys ≥ 5.2.0), ou position saisie. Seul le rectangle part chez data.gouv.fr.
+- Zone trop dense (> 6 000 lignes, `MAX_ROWS`) : rayon réduit (deux fois au plus), dit dans « État ».
+- L'onglet Découverte sert de liste (30 stations au plus, les plus proches avec données en direct,
+  plus les stations listées et celles déjà ajoutées) ; les stations « suivies » sont les appareils
+  créés. Une station ajoutée reste lue même hors du cercle (`id_station_itinerance__in`).
+- Filtres puissance / prise : les compteurs ne portent que sur les points qui conviennent ; le
+  `max` des compteurs suit le nombre total de points de la station (arrondi à la dizaine) pour que
+  changer de filtre ne change pas la structure de l'appareil.
+- Déclencheurs : deux lectures rapprochées (pas après une panne), station ni périmée avant ni après ;
+  `point_freed` porte `was_full` ("1"/"0") pour filtrer « après complet ».

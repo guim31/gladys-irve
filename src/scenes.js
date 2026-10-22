@@ -1,41 +1,85 @@
 // -----------------------------------------------------------------------------
-// Scene actions (SDK v0.14+, Gladys 5.1+).
+// Scene actions (manifest `scene_actions`, Gladys 5.1+).
 //
-// A scene action is an OPERATION a scene author places in a scene, with
-// parameters and a result: "identify this device", "take a snapshot", "clean
-// these rooms". Each one is declared in the manifest `scene_actions` field
-// (key, label, `fields` in the config_schema grammar, scalar `outputs`) and
-// handled here, keyed by that same `key`; index.js registers every entry with
-// `gladys.onSceneAction(key, ...)`.
+// - find_free: among the followed stations (all of them, or the ones picked),
+//   the nearest one with a free charge point, as numbers for a "Continue only
+//   if" step and as a sentence ready for a message or a speaker
+//   ("Parking Victor Hugo : 2 points de charge libres sur 4, à 1,2 km.").
 //
-// Scene TRIGGERS are the other direction ("this happened"): they are fired by
-// the device that observes the event, see src/devices/motionSensor.js.
-//
-// The rules that matter:
-//   - `fields` arrive RESOLVED: scene variables substituted, defaults applied,
-//     validated by the core; a `"source": "devices"` field is the chosen
-//     device external_id;
-//   - resolve an object of the declared `outputs` (scalars only), readable by
-//     the following actions of the scene, or `undefined` for none. Keys not
-//     declared in the manifest are dropped by the core;
-//   - throwing fails THIS action only: the scene logs it and continues. A
-//     scene action is never a condition: return an output and let the scene
-//     author gate on it;
-//   - never fire a scene event as a consequence of a received action: a scene
-//     bound to that event would loop through the integration.
+// A scene action does not receive the user's language: the sentence follows
+// the `language` of the configuration. Outputs are numbers, never booleans:
+// the core's "Continue only if" compares with ===. A station without live
+// data, out of date, or without a free charge point is never chosen. Without
+// a position, the station with the most free charge points wins.
 // -----------------------------------------------------------------------------
 
-import { createLogger } from '@gladysassistant/integration-sdk';
-import { signalDevice } from './devices/index.js';
+import { TEXT, say } from './messages.js';
 
-const logger = createLogger({ name: 'scenes' });
+export class SceneError extends Error {}
+
+const chosenIds = (value) =>
+  (Array.isArray(value) ? value : value ? [value] : []).map(String).filter(Boolean);
+
+const EMPTY = {
+  station_name: '',
+  address: '',
+  free: 0,
+  total: 0,
+  max_power: 0,
+  distance_km: 0,
+};
 
 export const SCENE_ACTIONS = {
-  // The ack is awaited under the action's `timeout_seconds` (15 s in the
-  // manifest), counted from the moment the scene reaches the action.
-  async identify_device(gladys, { fields, config }) {
-    logger.info(`Scene action identify_device <- ${fields.device}`);
-    const signalled = await signalDevice(gladys, fields.device, config);
-    return { signalled };
+  async find_free(service, { fields }) {
+    const language = service.config.language;
+    // Asked right at start: the first reading, not "nothing free".
+    await service.firstReading();
+    const followed = service.followed().map((entry) => entry.deviceId);
+    if (followed.length === 0) {
+      throw new SceneError(say(TEXT, language, 'noStation'));
+    }
+    const asked = chosenIds(fields?.stations);
+    const chosen = asked.filter((id) => followed.includes(id));
+    if (asked.length > 0 && chosen.length === 0) {
+      throw new SceneError(say(TEXT, language, 'gone'));
+    }
+    let best = null;
+    for (const deviceId of chosen.length > 0 ? chosen : followed) {
+      const found = service.lookup(deviceId);
+      const reading = found?.reading;
+      if (!reading || reading.free === 0 || service.isStale(reading)) {
+        continue;
+      }
+      const distance = service.distance(found.station);
+      const better =
+        !best ||
+        (distance !== null && best.distance !== null
+          ? distance < best.distance
+          : reading.free > best.reading.free);
+      if (better) {
+        best = { ...found, deviceId, distance };
+      }
+    }
+    if (!best) {
+      return { found: 0, sentence: say(TEXT, language, 'noneFree'), ...EMPTY };
+    }
+    const { station, reading, deviceId, distance } = best;
+    const variables = service.variables(station, deviceId, reading);
+    return {
+      found: 1,
+      sentence: say(TEXT, language, 'sentence', {
+        name: variables.station_name,
+        free: reading.free,
+        total: reading.total,
+        power: reading.maxPower,
+        distance,
+      }),
+      station_name: variables.station_name,
+      address: variables.address,
+      free: variables.free,
+      total: variables.total,
+      max_power: variables.max_power,
+      distance_km: variables.distance_km,
+    };
   },
 };

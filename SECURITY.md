@@ -30,6 +30,18 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+What the integration handles:
+
+- **No secret**: the open data it reads needs no account and no key.
+- **The position of your houses** (`location: true`), read from Gladys to find
+  the stations nearby. It is never stored nor logged; only the search box
+  around it (a rectangle of 1 to 20 km) is sent to the data.gouv.fr API.
+- **Nothing stored in `/data`**: the settings live in the Gladys
+  configuration, the stations and their last states in memory only.
+- **Network**: outgoing HTTPS requests only, to tabular-api.data.gouv.fr and
+  proxy.transport.data.gouv.fr, with a timeout and a size cap on every answer.
+  No port is opened.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and the open data platforms the integration reads.

@@ -1,177 +1,958 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Bornes de recharge (IRVE)",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Live availability of public EV charging stations near you in France (national open data, IRVE).",
+    "fr": "Disponibilité en direct des bornes de recharge publiques autour de chez vous (open data IRVE).",
+    "de": "Live-Verfügbarkeit öffentlicher Ladestationen in deiner Nähe in Frankreich (Open Data IRVE).",
+    "es": "Disponibilidad en directo de los puntos de recarga públicos cerca de usted en Francia (IRVE)."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "docker_image": "ghcr.io/guim31/gladys-irve:1.0.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-irve/main/cover.png",
+  "categories": ["energy", "services"],
+  "transports": ["cloud"],
+  "location": true,
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "How it works",
+        "fr": "Fonctionnement",
+        "de": "So funktioniert es",
+        "es": "Funcionamiento"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "The public charging stations around your house (or the ones you list) that publish their live state appear in the Discover tab. Add the ones you use to Gladys. No account, no key.",
+        "fr": "Les bornes publiques autour de votre maison (ou celles que vous listez) qui publient leur état en direct apparaissent dans l'onglet Découverte. Ajoutez à Gladys celles que vous utilisez. Sans compte ni clé.",
+        "de": "Die öffentlichen Ladestationen um dein Zuhause (oder die, die du auflistest), die ihren Zustand live veröffentlichen, erscheinen im Tab „Entdecken“. Füge die, die du nutzt, zu Gladys hinzu. Kein Konto, kein Schlüssel.",
+        "es": "Las estaciones públicas alrededor de su casa (o las que usted indique) que publican su estado en directo aparecen en la pestaña Descubrir. Añada a Gladys las que utiliza. Sin cuenta ni clave."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-irve/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide de configuration",
+            "de": "Einrichtungsanleitung",
+            "es": "Guía de configuración"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
+      "key": "house",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "source": "houses",
       "required": false,
-      "default": "celsius",
+      "label": {
+        "en": "House",
+        "fr": "Maison",
+        "de": "Zuhause",
+        "es": "Vivienda"
+      },
+      "description": {
+        "en": "Center of the search. Empty: the first located house.",
+        "fr": "Centre de la recherche. Vide : la première maison localisée.",
+        "de": "Mittelpunkt der Suche. Leer: das erste Zuhause mit Standort.",
+        "es": "Centro de la búsqueda. Vacío: la primera vivienda ubicada."
+      }
+    },
+    {
+      "key": "position",
+      "type": "string",
+      "required": false,
+      "label": {
+        "en": "Other position (optional)",
+        "fr": "Autre position (facultatif)",
+        "de": "Andere Position (optional)",
+        "es": "Otra posición (opcional)"
+      },
+      "description": {
+        "en": "Latitude, longitude: replaces the house (your workplace, for example).",
+        "fr": "Latitude, longitude : remplace la maison (votre lieu de travail, par exemple).",
+        "de": "Breitengrad, Längengrad: ersetzt das Zuhause (zum Beispiel deine Arbeit).",
+        "es": "Latitud, longitud: sustituye a la vivienda (su lugar de trabajo, por ejemplo)."
+      },
+      "placeholder": {
+        "en": "e.g. 43.6045, 1.4440",
+        "fr": "ex. 43.6045, 1.4440",
+        "de": "z. B. 43.6045, 1.4440",
+        "es": "p. ej. 43.6045, 1.4440"
+      }
+    },
+    {
+      "key": "radius_km",
+      "type": "select",
+      "default": "5",
+      "label": {
+        "en": "Radius",
+        "fr": "Rayon",
+        "de": "Radius",
+        "es": "Radio"
+      },
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "1",
+          "label": {
+            "en": "1 km",
+            "fr": "1 km",
+            "de": "1 km",
+            "es": "1 km"
+          }
+        },
+        {
+          "value": "2",
+          "label": {
+            "en": "2 km",
+            "fr": "2 km",
+            "de": "2 km",
+            "es": "2 km"
+          }
+        },
+        {
+          "value": "5",
+          "label": {
+            "en": "5 km",
+            "fr": "5 km",
+            "de": "5 km",
+            "es": "5 km"
+          }
+        },
+        {
+          "value": "10",
+          "label": {
+            "en": "10 km",
+            "fr": "10 km",
+            "de": "10 km",
+            "es": "10 km"
+          }
+        },
+        {
+          "value": "20",
+          "label": {
+            "en": "20 km",
+            "fr": "20 km",
+            "de": "20 km",
+            "es": "20 km"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
-      "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+      "key": "min_power",
+      "type": "select",
+      "default": "0",
+      "label": {
+        "en": "Minimum power",
+        "fr": "Puissance minimale",
+        "de": "Mindestleistung",
+        "es": "Potencia mínima"
       },
+      "description": {
+        "en": "Only charge points at least this powerful are counted.",
+        "fr": "Seuls les points de charge au moins aussi puissants sont comptés.",
+        "de": "Nur Ladepunkte mit mindestens dieser Leistung werden gezählt.",
+        "es": "Solo se cuentan los puntos de carga con al menos esta potencia."
+      },
+      "options": [
+        {
+          "value": "0",
+          "label": {
+            "en": "Any",
+            "fr": "Toutes",
+            "de": "Alle",
+            "es": "Todas"
+          }
+        },
+        {
+          "value": "7",
+          "label": {
+            "en": "7 kW",
+            "fr": "7 kW",
+            "de": "7 kW",
+            "es": "7 kW"
+          }
+        },
+        {
+          "value": "22",
+          "label": {
+            "en": "22 kW",
+            "fr": "22 kW",
+            "de": "22 kW",
+            "es": "22 kW"
+          }
+        },
+        {
+          "value": "50",
+          "label": {
+            "en": "50 kW",
+            "fr": "50 kW",
+            "de": "50 kW",
+            "es": "50 kW"
+          }
+        },
+        {
+          "value": "150",
+          "label": {
+            "en": "150 kW",
+            "fr": "150 kW",
+            "de": "150 kW",
+            "es": "150 kW"
+          }
+        }
+      ]
+    },
+    {
+      "key": "connector",
+      "type": "select",
+      "default": "any",
+      "label": {
+        "en": "Connector",
+        "fr": "Type de prise",
+        "de": "Steckertyp",
+        "es": "Tipo de conector"
+      },
+      "options": [
+        {
+          "value": "any",
+          "label": {
+            "en": "Any",
+            "fr": "Toutes",
+            "de": "Alle",
+            "es": "Todos"
+          }
+        },
+        {
+          "value": "type_2",
+          "label": {
+            "en": "Type 2",
+            "fr": "Type 2",
+            "de": "Type 2",
+            "es": "Type 2"
+          }
+        },
+        {
+          "value": "combo_ccs",
+          "label": {
+            "en": "Combo CCS",
+            "fr": "Combo CCS",
+            "de": "Combo CCS",
+            "es": "Combo CCS"
+          }
+        },
+        {
+          "value": "chademo",
+          "label": {
+            "en": "CHAdeMO",
+            "fr": "CHAdeMO",
+            "de": "CHAdeMO",
+            "es": "CHAdeMO"
+          }
+        },
+        {
+          "value": "ef",
+          "label": {
+            "en": "Domestic socket (E/F)",
+            "fr": "Prise domestique (E/F)",
+            "de": "Haushaltssteckdose (E/F)",
+            "es": "Enchufe doméstico (E/F)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "stations",
+      "type": "string",
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "label": {
+        "en": "Other stations (ids)",
+        "fr": "Autres stations (identifiants)",
+        "de": "Weitere Stationen (IDs)",
+        "es": "Otras estaciones (identificadores)"
+      },
+      "description": {
+        "en": "Station ids, separated by commas, wherever they are: use the \"Find a station\" action below.",
+        "fr": "Identifiants de stations, séparés par des virgules, où qu'elles soient : action « Chercher une station » ci-dessous.",
+        "de": "Stations-IDs, durch Kommas getrennt, egal wo: nutze unten die Aktion „Station suchen“.",
+        "es": "Identificadores de estaciones, separados por comas, estén donde estén: use la acción «Buscar una estación» abajo."
+      },
+      "placeholder": {
+        "en": "e.g. FRTLSP31555001",
+        "fr": "ex. FRTLSP31555001",
+        "de": "z. B. FRTLSP31555001",
+        "es": "p. ej. FRTLSP31555001"
+      }
+    },
+    {
+      "key": "refresh_interval",
+      "type": "select",
+      "default": "600",
+      "label": {
+        "en": "Refresh",
+        "fr": "Rafraîchissement",
+        "de": "Aktualisierung",
+        "es": "Actualización"
+      },
+      "options": [
+        {
+          "value": "300",
+          "label": {
+            "en": "Every 5 minutes",
+            "fr": "Toutes les 5 minutes",
+            "de": "Alle 5 Minuten",
+            "es": "Cada 5 minutos"
+          }
+        },
+        {
+          "value": "600",
+          "label": {
+            "en": "Every 10 minutes",
+            "fr": "Toutes les 10 minutes",
+            "de": "Alle 10 Minuten",
+            "es": "Cada 10 minutos"
+          }
+        },
+        {
+          "value": "900",
+          "label": {
+            "en": "Every 15 minutes",
+            "fr": "Toutes les 15 minutes",
+            "de": "Alle 15 Minuten",
+            "es": "Cada 15 minutos"
+          }
+        }
+      ]
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "default": "fr",
+      "label": {
+        "en": "Language of names and messages",
+        "fr": "Langue des noms et messages",
+        "de": "Sprache der Namen und Nachrichten",
+        "es": "Idioma de nombres y mensajes"
+      },
+      "description": {
+        "en": "Feature names are fixed when a device is added.",
+        "fr": "Les noms des fonctionnalités sont figés à l'ajout de l'appareil.",
+        "de": "Die Namen der Funktionen werden beim Hinzufügen festgelegt.",
+        "es": "Los nombres de las funciones se fijan al añadir el dispositivo."
+      },
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
+      "key": "status",
+      "label": {
+        "en": "Status",
+        "fr": "État",
+        "de": "Status",
+        "es": "Estado"
+      },
+      "description": {
+        "en": "Position, stations found, stations with live data, last reading and errors.",
+        "fr": "Position, stations trouvées, stations avec données en direct, dernière lecture et erreurs.",
+        "de": "Position, gefundene Stationen, Stationen mit Live-Daten, letzte Abfrage und Fehler.",
+        "es": "Posición, estaciones encontradas, estaciones con datos en directo, última lectura y errores."
+      },
+      "timeout_seconds": 30,
+      "fields": []
     },
     {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
+      "key": "search",
+      "label": {
+        "en": "Find a station",
+        "fr": "Chercher une station",
+        "de": "Station suchen",
+        "es": "Buscar una estación"
+      },
+      "description": {
+        "en": "Lists the stations whose address contains a text, with the id to copy in \"Other stations\".",
+        "fr": "Liste les stations dont l'adresse contient un texte, avec l'identifiant à copier dans « Autres stations ».",
+        "de": "Listet die Stationen, deren Adresse einen Text enthält, mit der ID zum Kopieren in „Weitere Stationen“.",
+        "es": "Muestra las estaciones cuya dirección contiene un texto, con el identificador para copiar en «Otras estaciones»."
+      },
+      "timeout_seconds": 60,
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "key": "query",
+          "type": "string",
+          "required": true,
+          "label": {
+            "en": "Town or street",
+            "fr": "Commune ou rue",
+            "de": "Ort oder Straße",
+            "es": "Municipio o calle"
+          },
+          "placeholder": {
+            "en": "e.g. Blagnac",
+            "fr": "ex. Blagnac",
+            "de": "z. B. Blagnac",
+            "es": "p. ej. Blagnac"
+          }
         }
       ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "point_freed",
+      "label": {
+        "en": "A charge point becomes free",
+        "fr": "Une borne se libère",
+        "de": "Ein Ladepunkt wird frei",
+        "es": "Un punto de carga queda libre"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A followed station has more free charge points than at the previous reading.",
+        "fr": "Une station suivie a plus de points de charge libres qu'à la lecture précédente.",
+        "de": "Eine verfolgte Station hat mehr freie Ladepunkte als bei der letzten Abfrage.",
+        "es": "Una estación seguida tiene más puntos de carga libres que en la lectura anterior."
       },
       "fields": [
         {
-          "key": "device",
-          "type": "select",
+          "key": "station",
+          "type": "multi_select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "required": false,
+          "label": {
+            "en": "Stations",
+            "fr": "Stations",
+            "de": "Stationen",
+            "es": "Estaciones"
+          },
+          "description": {
+            "en": "Empty: any followed station.",
+            "fr": "Vide : n'importe quelle station suivie.",
+            "de": "Leer: jede verfolgte Station.",
+            "es": "Vacío: cualquier estación seguida."
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "key": "was_full",
+          "type": "select",
+          "required": false,
+          "label": {
+            "en": "Station before",
+            "fr": "Station avant",
+            "de": "Station vorher",
+            "es": "Estación antes"
+          },
+          "description": {
+            "en": "Empty: in every case.",
+            "fr": "Vide : dans tous les cas.",
+            "de": "Leer: in jedem Fall.",
+            "es": "Vacío: en todos los casos."
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "1",
+              "label": {
+                "en": "Was all taken",
+                "fr": "Était complète",
+                "de": "War voll belegt",
+                "es": "Estaba completa"
+              }
+            },
+            {
+              "value": "0",
+              "label": {
+                "en": "Already had a free point",
+                "fr": "Avait déjà un point libre",
+                "de": "Hatte schon einen freien Punkt",
+                "es": "Ya tenía un punto libre"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "station_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          }
+        },
+        {
+          "key": "address",
+          "type": "string",
+          "label": {
+            "en": "Address",
+            "fr": "Adresse",
+            "de": "Adresse",
+            "es": "Dirección"
+          }
+        },
+        {
+          "key": "free",
+          "type": "number",
+          "label": {
+            "en": "Free charge points",
+            "fr": "Points de charge libres",
+            "de": "Freie Ladepunkte",
+            "es": "Puntos de carga libres"
+          }
+        },
+        {
+          "key": "total",
+          "type": "number",
+          "label": {
+            "en": "Charge points",
+            "fr": "Points de charge",
+            "de": "Ladepunkte",
+            "es": "Puntos de carga"
+          }
+        },
+        {
+          "key": "out_of_service",
+          "type": "number",
+          "label": {
+            "en": "Out of service",
+            "fr": "Hors service",
+            "de": "Außer Betrieb",
+            "es": "Fuera de servicio"
+          }
+        },
+        {
+          "key": "max_power",
+          "type": "number",
+          "label": {
+            "en": "Maximum power (kW)",
+            "fr": "Puissance maximale (kW)",
+            "de": "Maximale Leistung (kW)",
+            "es": "Potencia máxima (kW)"
+          }
+        },
+        {
+          "key": "distance_km",
+          "type": "number",
+          "label": {
+            "en": "Distance (km)",
+            "fr": "Distance (km)",
+            "de": "Entfernung (km)",
+            "es": "Distancia (km)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "station_full",
+      "label": {
+        "en": "Station all taken",
+        "fr": "Station complète",
+        "de": "Station voll belegt",
+        "es": "Estación completa"
+      },
+      "description": {
+        "en": "Every charge point in service of a followed station is now taken.",
+        "fr": "Tous les points de charge en service d'une station suivie sont désormais occupés.",
+        "de": "Alle betriebsbereiten Ladepunkte einer verfolgten Station sind jetzt belegt.",
+        "es": "Todos los puntos de carga en servicio de una estación seguida están ahora ocupados."
+      },
+      "fields": [
+        {
+          "key": "station",
+          "type": "multi_select",
+          "source": "devices",
+          "required": false,
+          "label": {
+            "en": "Stations",
+            "fr": "Stations",
+            "de": "Stationen",
+            "es": "Estaciones"
+          },
+          "description": {
+            "en": "Empty: any followed station.",
+            "fr": "Vide : n'importe quelle station suivie.",
+            "de": "Leer: jede verfolgte Station.",
+            "es": "Vacío: cualquier estación seguida."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "station_name",
+          "type": "string",
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          }
+        },
+        {
+          "key": "address",
+          "type": "string",
+          "label": {
+            "en": "Address",
+            "fr": "Adresse",
+            "de": "Adresse",
+            "es": "Dirección"
+          }
+        },
+        {
+          "key": "free",
+          "type": "number",
+          "label": {
+            "en": "Free charge points",
+            "fr": "Points de charge libres",
+            "de": "Freie Ladepunkte",
+            "es": "Puntos de carga libres"
+          }
+        },
+        {
+          "key": "total",
+          "type": "number",
+          "label": {
+            "en": "Charge points",
+            "fr": "Points de charge",
+            "de": "Ladepunkte",
+            "es": "Puntos de carga"
+          }
+        },
+        {
+          "key": "out_of_service",
+          "type": "number",
+          "label": {
+            "en": "Out of service",
+            "fr": "Hors service",
+            "de": "Außer Betrieb",
+            "es": "Fuera de servicio"
+          }
+        },
+        {
+          "key": "max_power",
+          "type": "number",
+          "label": {
+            "en": "Maximum power (kW)",
+            "fr": "Puissance maximale (kW)",
+            "de": "Maximale Leistung (kW)",
+            "es": "Potencia máxima (kW)"
+          }
+        },
+        {
+          "key": "distance_km",
+          "type": "number",
+          "label": {
+            "en": "Distance (km)",
+            "fr": "Distance (km)",
+            "de": "Entfernung (km)",
+            "es": "Distancia (km)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "station_out_of_service",
+      "label": {
+        "en": "Station out of service",
+        "fr": "Station hors service",
+        "de": "Station außer Betrieb",
+        "es": "Estación fuera de servicio"
+      },
+      "description": {
+        "en": "Every charge point with a known state of a followed station is out of service.",
+        "fr": "Tous les points de charge à l'état connu d'une station suivie sont hors service.",
+        "de": "Alle Ladepunkte mit bekanntem Zustand einer verfolgten Station sind außer Betrieb.",
+        "es": "Todos los puntos de carga con estado conocido de una estación seguida están fuera de servicio."
+      },
+      "fields": [
+        {
+          "key": "station",
+          "type": "multi_select",
+          "source": "devices",
+          "required": false,
+          "label": {
+            "en": "Stations",
+            "fr": "Stations",
+            "de": "Stationen",
+            "es": "Estaciones"
+          },
+          "description": {
+            "en": "Empty: any followed station.",
+            "fr": "Vide : n'importe quelle station suivie.",
+            "de": "Leer: jede verfolgte Station.",
+            "es": "Vacío: cualquier estación seguida."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "station_name",
+          "type": "string",
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          }
+        },
+        {
+          "key": "address",
+          "type": "string",
+          "label": {
+            "en": "Address",
+            "fr": "Adresse",
+            "de": "Adresse",
+            "es": "Dirección"
+          }
+        },
+        {
+          "key": "free",
+          "type": "number",
+          "label": {
+            "en": "Free charge points",
+            "fr": "Points de charge libres",
+            "de": "Freie Ladepunkte",
+            "es": "Puntos de carga libres"
+          }
+        },
+        {
+          "key": "total",
+          "type": "number",
+          "label": {
+            "en": "Charge points",
+            "fr": "Points de charge",
+            "de": "Ladepunkte",
+            "es": "Puntos de carga"
+          }
+        },
+        {
+          "key": "out_of_service",
+          "type": "number",
+          "label": {
+            "en": "Out of service",
+            "fr": "Hors service",
+            "de": "Außer Betrieb",
+            "es": "Fuera de servicio"
+          }
+        },
+        {
+          "key": "max_power",
+          "type": "number",
+          "label": {
+            "en": "Maximum power (kW)",
+            "fr": "Puissance maximale (kW)",
+            "de": "Maximale Leistung (kW)",
+            "es": "Potencia máxima (kW)"
+          }
+        },
+        {
+          "key": "distance_km",
+          "type": "number",
+          "label": {
+            "en": "Distance (km)",
+            "fr": "Distance (km)",
+            "de": "Entfernung (km)",
+            "es": "Distancia (km)"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
+      "key": "find_free",
+      "label": {
+        "en": "Find the nearest free station",
+        "fr": "Trouver la borne libre la plus proche",
+        "de": "Nächste freie Ladestation finden",
+        "es": "Buscar la estación libre más cercana"
+      },
       "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+        "en": "Among your followed stations, the nearest one with a free charge point, with a sentence ready to send.",
+        "fr": "Parmi vos stations suivies, la plus proche avec un point de charge libre, avec une phrase prête à envoyer.",
+        "de": "Unter deinen verfolgten Stationen die nächste mit einem freien Ladepunkt, mit einem fertigen Satz.",
+        "es": "Entre sus estaciones seguidas, la más cercana con un punto de carga libre, con una frase lista para enviar."
       },
       "timeout_seconds": 15,
       "fields": [
         {
-          "key": "device",
-          "type": "select",
+          "key": "stations",
+          "type": "multi_select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "required": false,
+          "label": {
+            "en": "Stations compared",
+            "fr": "Stations comparées",
+            "de": "Verglichene Stationen",
+            "es": "Estaciones comparadas"
+          },
+          "description": {
+            "en": "Empty: every followed station.",
+            "fr": "Vide : toutes les stations suivies.",
+            "de": "Leer: alle verfolgten Stationen.",
+            "es": "Vacío: todas las estaciones seguidas."
+          }
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "found",
+          "type": "number",
+          "label": {
+            "en": "Found (1 = yes, 0 = no)",
+            "fr": "Trouvée (1 = oui, 0 = non)",
+            "de": "Gefunden (1 = ja, 0 = nein)",
+            "es": "Encontrada (1 = sí, 0 = no)"
+          }
+        },
+        {
+          "key": "sentence",
+          "type": "string",
+          "label": {
+            "en": "Sentence",
+            "fr": "Phrase",
+            "de": "Satz",
+            "es": "Frase"
+          }
+        },
+        {
+          "key": "station_name",
+          "type": "string",
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          }
+        },
+        {
+          "key": "address",
+          "type": "string",
+          "label": {
+            "en": "Address",
+            "fr": "Adresse",
+            "de": "Adresse",
+            "es": "Dirección"
+          }
+        },
+        {
+          "key": "free",
+          "type": "number",
+          "label": {
+            "en": "Free charge points",
+            "fr": "Points de charge libres",
+            "de": "Freie Ladepunkte",
+            "es": "Puntos de carga libres"
+          }
+        },
+        {
+          "key": "total",
+          "type": "number",
+          "label": {
+            "en": "Charge points",
+            "fr": "Points de charge",
+            "de": "Ladepunkte",
+            "es": "Puntos de carga"
+          }
+        },
+        {
+          "key": "max_power",
+          "type": "number",
+          "label": {
+            "en": "Maximum power (kW)",
+            "fr": "Puissance maximale (kW)",
+            "de": "Maximale Leistung (kW)",
+            "es": "Potencia máxima (kW)"
+          }
+        },
+        {
+          "key": "distance_km",
+          "type": "number",
+          "label": {
+            "en": "Distance (km)",
+            "fr": "Distance (km)",
+            "de": "Entfernung (km)",
+            "es": "Distancia (km)"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "stations",
+      "label": {
+        "en": "Charging stations",
+        "fr": "Bornes de recharge",
+        "de": "Ladestationen",
+        "es": "Estaciones de recarga"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Free charge points of your stations, green when one is free.",
+        "fr": "Points de charge libres de vos stations, en vert quand un point est libre.",
+        "de": "Freie Ladepunkte deiner Stationen, grün wenn einer frei ist.",
+        "es": "Puntos de carga libres de sus estaciones, en verde cuando uno está libre."
+      },
+      "icon": "zap",
+      "settings": [
+        {
+          "key": "stations",
+          "type": "multi_select",
+          "source": "devices",
+          "required": false,
+          "label": {
+            "en": "Stations shown",
+            "fr": "Stations affichées",
+            "de": "Angezeigte Stationen",
+            "es": "Estaciones mostradas"
+          },
+          "description": {
+            "en": "Empty: every followed station (10 at most).",
+            "fr": "Vide : toutes les stations suivies (10 au plus).",
+            "de": "Leer: alle verfolgten Stationen (höchstens 10).",
+            "es": "Vacío: todas las estaciones seguidas (10 como máximo)."
+          }
+        }
+      ]
     }
   ]
 }

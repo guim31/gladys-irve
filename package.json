@@ -1,8 +1,8 @@
 {
-  "name": "gladys-integration-template-js",
+  "name": "gladys-irve",
   "version": "1.0.0",
   "private": true,
-  "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
+  "description": "Gladys Assistant integration: live availability of the public EV charging stations around you in France, from the national IRVE open data.",
   "type": "module",
   "main": "index.js",
   "scripts": {
