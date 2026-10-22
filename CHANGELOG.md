@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-22
+
 ### Added
 
 - Live availability of the public EV charging stations around your house in
@@ -29,3 +31,6 @@ the notes of the version's GitHub Release.
 - Configuration actions "Status" and "Find a station" (by town or street, to
   follow a station far from home).
 - Texts and documentation in English, French, German and Spanish.
+
+[Unreleased]: https://github.com/guim31/gladys-irve/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-irve/releases/tag/v1.0.0
