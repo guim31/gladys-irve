@@ -135,7 +135,7 @@ export async function getJson(fetchImpl, url, options = {}) {
  * GET a text document and hand it over line by line (without the line
  * break), so that a file of 100 000 lines is filtered without being kept. The
  * body is fetched compressed (fetch decompresses it); `maxBytes` caps the
- * decompressed text.
+ * decompressed text (9 MB in October 2026), `maxLine` a line.
  * @param {(line: string) => void} onLine
  * @returns {Promise<number>} the number of lines read
  */
@@ -143,7 +143,7 @@ export async function getLines(
   fetchImpl,
   url,
   onLine,
-  { timeoutMs = 60000, maxBytes = 200e6 } = {},
+  { timeoutMs = 60000, maxBytes = 30e6, maxLine = 100000 } = {},
 ) {
   const response = await request(fetchImpl, url, timeoutMs, {
     accept: 'text/csv',
@@ -164,6 +164,9 @@ export async function getLines(
   const flush = (text, last) => {
     const parts = (rest + text).split('\n');
     rest = last ? '' : parts.pop();
+    if (rest.length > maxLine) {
+      throw new HttpError(`${hostOf(url)}: line too long`);
+    }
     for (const part of parts) {
       const line = part.endsWith('\r') ? part.slice(0, -1) : part;
       if (line !== '') {

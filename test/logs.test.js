@@ -68,3 +68,15 @@ test('the station list down at start: one warning, then one line at recovery', a
   ]);
   assert.equal(world.fake.discoveredDevices.length, 5);
 });
+
+test('the station list down from the start: the status still shows the position', async (t) => {
+  const world = await createWorld({ connect: false });
+  t.after(() => world.app.stop());
+  world.network.fail.static = 502;
+  await world.gladys.connect();
+  await world.app.ready;
+  await world.service.loading;
+  const ack = await world.fake.action('status', {});
+  assert.match(ack.data.message.en, /^■ Around Maison, 1 km\n/);
+  assert.match(ack.data.message.en, /Last error: tabular-api\.data\.gouv\.fr: HTTP 502/);
+});

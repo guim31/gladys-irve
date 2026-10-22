@@ -277,3 +277,13 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
   changer de filtre ne change pas la structure de l'appareil.
 - Déclencheurs : deux lectures rapprochées (pas après une panne), station ni périmée avant ni après ;
   `point_freed` porte `was_full` ("1"/"0") pour filtrer « après complet ».
+- « Complète » = tous les points en service occupés ou réservés (`isFull`) : un point
+  `en_service` à l'occupation `inconnu` (une ligne sur dix) ne rend pas la station complète (ligne
+  orange). « Hors service » ignore les points à l'état `inconnu`.
+- Aucun déclencheur quand les lectures ont été calculées avec d'autres filtres ou une autre liste
+  statique (`readingsBasis`). Un échec de l'API tabulaire garde la zone précédente et réessaie au
+  cycle suivant ; une station ajoutée mais disparue des données n'est recherchée qu'une fois par
+  jour (`notFound`).
+- `adresse_station__contains` est sensible à la casse : la recherche essaie le texte tel quel,
+  capitalisé (mots de 3 lettres et plus), puis en majuscules. Requêtes triées par
+  `id_pdc_itinerance__sort=asc` (pagination stable).

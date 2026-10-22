@@ -88,7 +88,7 @@ live veröffentlichten Punkt werden nur „Ladepunkte“ und „Maximale Leistun
 ## Dashboard-Widget
 
 Das Widget **Ladestationen** zeigt eine Zeile pro verfolgter Station (höchstens 10, oder die in
-seinen Einstellungen gewählten): „2 / 4 frei“ in Grün, „alle belegt“ oder „außer Betrieb“ in Rot,
+seinen Einstellungen gewählten): „2 / 4 frei“ in Grün, „alle belegt“ oder „außer Betrieb“ in Rot, „0 / 4 frei“ in Orange, wenn die Belegung einiger Punkte unbekannt ist,
 und in Grau „Daten veraltet“ (kein Zustand seit 48 h), „keine Live-Daten“ oder „kein passender
 Ladepunkt“.
 
@@ -139,7 +139,7 @@ Leistung, Entfernung in km. Nutze „Nur fortfahren, wenn“ mit `found` = 1, be
   etwa 230 MB pro Tag).
 - **Abdeckung**: Viele Betreiber veröffentlichen noch keinen Live-Zustand. Am 22.10.2026 hatte in
   Toulouse etwas mehr als die Hälfte der öffentlichen Ladepunkte einen; je nach Stadt zwischen einem
-  Drittel und neun von zehn. Stationen ohne Live-Daten werden nicht angeboten.
+  Viertel und neun von zehn. Stationen ohne Live-Daten werden nicht angeboten.
 - **Alter**: Der Zeitstempel ist der des Betreibers, meist die letzte **Änderung** des Zustands.
   Eine ruhige Station kann stundenlang denselben Zustand behalten, ohne dass die Daten falsch sind:
   Nach 48 h ohne Änderung gilt sie als veraltet; ein Punkt ohne Neuigkeit seit mehr als 7 Tagen wird

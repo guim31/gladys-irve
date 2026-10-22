@@ -57,6 +57,8 @@ export function boxUrl(center, radiusKm, page = 1) {
     consolidated_latitude__less: (center.lat + dLat).toFixed(5),
     consolidated_longitude__greater: (center.lon - dLon).toFixed(5),
     consolidated_longitude__less: (center.lon + dLon).toFixed(5),
+    // A stable order: pagination, and the station a duplicated point goes to.
+    id_pdc_itinerance__sort: 'asc',
     page_size: String(PAGE_SIZE),
     page: String(page),
   });
@@ -67,6 +69,8 @@ export function boxUrl(center, radiusKm, page = 1) {
 export function stationsUrl(ids, page = 1) {
   const params = new URLSearchParams({
     id_station_itinerance__in: ids.join(','),
+    // A stable order: pagination, and the station a duplicated point goes to.
+    id_pdc_itinerance__sort: 'asc',
     page_size: String(PAGE_SIZE),
     page: String(page),
   });
@@ -240,7 +244,7 @@ function parisOffsetMs(utcMs) {
  */
 export function parseTimestamp(value) {
   const match =
-    /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(\.\d+)?\s*(Z|[+-]\d{2}:?\d{2})?$/.exec(
+    /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(\.\d+)?\s*(Z|[+-]\d{2}(?::?\d{2})?)?$/.exec(
       String(value ?? '').trim(),
     );
   if (!match) {
@@ -254,7 +258,7 @@ export function parseTimestamp(value) {
   }
   if (zone) {
     const sign = zone.startsWith('-') ? -1 : 1;
-    const digits = zone.slice(1).replace(':', '');
+    const digits = zone.slice(1).replace(':', '').padEnd(4, '0');
     return asUtc - sign * (Number(digits.slice(0, 2)) * 60 + Number(digits.slice(2))) * 60000;
   }
   // Local time: the offset at the guessed instant, checked once (DST changes).
@@ -352,6 +356,12 @@ export function stationReading(station, points, filters, now) {
   return reading;
 }
 
-/** Every known point out of service (and at least one known). */
-export const allOutOfService = (reading) =>
-  reading.live > 0 && reading.outOfService === reading.live;
+/** Every point with a known state out of service (and at least one known). */
+export const allOutOfService = (reading) => reading.outOfService > 0 && reading.inService === 0;
+
+/**
+ * Every point in service is occupied or reserved (at least one): a point in
+ * service whose occupation is unknown does not make a station full.
+ */
+export const isFull = (reading) =>
+  reading.free === 0 && reading.occupied > 0 && reading.occupied === reading.inService;

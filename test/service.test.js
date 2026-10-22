@@ -393,3 +393,67 @@ test('a tabular API page that fails once is tried again at once', async (t) => {
   assert.equal(world.fake.discoveredDevices.length, 5);
   assert.equal(world.service.staticError, null);
 });
+
+test('an occupation unknown is not "all taken": no trigger, orange row', async (t) => {
+  const world = await createWorld({ config: { radius_km: '2' } });
+  t.after(() => world.app.stop());
+  await create(world, CIMETIERE);
+  const points = ['FRTLSE315550501', 'FRTLSE315550502', 'FRTLSE315550503', 'FRTLSE315550504'];
+  setPoints(world, points.slice(0, 3), { occupation_pdc: 'occupe' });
+  setPoints(world, points.slice(3), { occupation_pdc: 'inconnu' });
+  await cycle(world);
+  assert.deepEqual(world.fake.sceneEvents, []);
+  const content = await widget(world);
+  assert.deepEqual(content.components[0].items[0], {
+    label: 'TOULOUSE - Avenue du Cimetière',
+    value: '0 / 4 libre',
+    color: 'warning',
+  });
+});
+
+test('a filter change fires no trigger', async (t) => {
+  const world = await createWorld({ config: { radius_km: '2' } });
+  t.after(() => world.app.stop());
+  await create(world, CIMETIERE);
+  // No CHAdeMO point: free drops from 2 to 0 without anything happening.
+  await world.fake.configUpdated({ radius_km: '2', connector: 'chademo' });
+  await cycle(world);
+  await world.fake.configUpdated({ radius_km: '2' });
+  assert.deepEqual(world.fake.sceneEvents, []);
+});
+
+test('a reconfiguration while the tabular API is down keeps the previous area', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  world.network.fail.static = 504;
+  await world.fake.configUpdated({ radius_km: '2' });
+  assert.equal(world.fake.discoveredDevices.length, 5);
+  assert.equal(world.service.radiusKm, 1);
+  world.network.fail = {};
+  await cycle(world);
+  assert.equal(world.fake.discoveredDevices.length, 24);
+});
+
+test('a station added but gone from the national data is not looked for at every cycle', async (t) => {
+  const first = await createWorld({ config: { radius_km: '2' } });
+  const device = await create(first, CIMETIERE);
+  await first.app.stop();
+  const network = createFetch();
+  network.rows = network.rows.filter((r) => r.id_station_itinerance !== CIMETIERE);
+  const world = await createWorld({ config: { radius_km: '1' }, devices: [device], network });
+  t.after(() => world.app.stop());
+  const tabular = () => network.calls.filter((c) => c.url.includes('tabular')).length;
+  const before = tabular();
+  await cycle(world);
+  await cycle(world);
+  assert.equal(tabular(), before);
+});
+
+test('search: the case of the text does not matter', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  assert.match(
+    (await action(world, 'search', { query: 'avenue du cimetière' })).fr,
+    /FRTLSP31555050/,
+  );
+});

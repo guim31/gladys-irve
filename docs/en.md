@@ -86,7 +86,7 @@ published live, only "Charge points" and "Maximum power" are updated.
 ## Dashboard widget
 
 The **Charging stations** widget shows one row per followed station (10 at most, or the ones picked
-in its settings): "2 / 4 free" in green, "all taken" or "out of service" in red, and in grey "data
+in its settings): "2 / 4 free" in green, "all taken" or "out of service" in red, "0 / 4 free" in orange when the occupation of some points is unknown, and in grey "data
 out of date" (no state for 48 h), "no live data" or "no matching point".
 
 ## Scene triggers
@@ -133,7 +133,7 @@ in km. Use "Continue only if" with `found` = 1 before sending the sentence.
   9 MB (1.6 MB compressed): the file is read line by line and only the points of your stations are
   kept in memory. Read at the chosen pace (10 minutes by default, about 230 MB a day).
 - **Coverage**: many operators publish no live state yet. On 2026-10-22, in Toulouse, a little more
-  than half of the public charge points had one; depending on the city, between a third and nine out
+  than half of the public charge points had one; depending on the city, between a quarter and nine out
   of ten. Stations without live data are not offered.
 - **Age**: the timestamp is the operator's, usually the last **change** of state. A quiet station
   may keep the same state for hours without the data being wrong: after 48 h without any change it

@@ -29,6 +29,7 @@ test('timestamps: offsets, Z, and Paris local time without an offset', () => {
   // Summer time (UTC+2), winter time (UTC+1).
   assert.equal(parseTimestamp('2026-10-22 17:43:19'), Date.parse('2026-10-22T15:43:19Z'));
   assert.equal(parseTimestamp('2026-12-01 08:00:00'), Date.parse('2026-12-01T07:00:00Z'));
+  assert.equal(parseTimestamp('2026-10-22 14:00:00+00'), Date.parse('2026-10-22T14:00:00Z'));
   assert.equal(parseTimestamp(''), null);
   assert.equal(parseTimestamp('yesterday'), null);
 });

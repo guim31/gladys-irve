@@ -90,7 +90,7 @@ punto publicado en directo, solo se actualizan «Puntos de carga» y «Potencia 
 ## Widget del panel
 
 El widget **Estaciones de recarga** muestra una línea por estación seguida (10 como máximo, o las
-elegidas en sus ajustes): «2 / 4 libres» en verde, «todo ocupado» o «fuera de servicio» en rojo, y en
+elegidas en sus ajustes): «2 / 4 libres» en verde, «todo ocupado» o «fuera de servicio» en rojo, «0 / 4 libres» en naranja cuando se desconoce la ocupación de algunos puntos, y en
 gris «dato caducado» (ningún estado desde hace 48 h), «sin datos en directo» o «ningún punto
 compatible».
 
@@ -141,7 +141,7 @@ máxima, distancia en km. Use «Continuar solo si» con `found` = 1 antes de env
   al día).
 - **Cobertura**: muchos operadores aún no publican ningún estado en directo. El 22/10/2026, en
   Toulouse, algo más de la mitad de los puntos de carga públicos tenían uno; según la ciudad, entre
-  un tercio y nueve de cada diez. Las estaciones sin datos en directo no se proponen.
+  un cuarto y nueve de cada diez. Las estaciones sin datos en directo no se proponen.
 - **Antigüedad**: la marca de tiempo es la del operador, en general el último **cambio** de estado.
   Una estación tranquila puede mantener el mismo estado durante horas sin que el dato sea falso: tras
   48 h sin ningún cambio se marca como caducada; un punto sin novedades desde hace más de 7 días se

@@ -27,6 +27,7 @@ import {
 } from './devices.js';
 import {
   allOutOfService,
+  isFull,
   buildStations,
   distanceKm,
   readArea,
@@ -91,6 +92,8 @@ export class Irve {
     this.previousDynamicAt = null;
     this.dynamicError = null;
     this.readings = new Map(); // station id → reading
+    this.readingsBasis = null; // filters and static data the readings were computed with
+    this.notFound = new Set(); // stations added but absent from the national data
     this.discoveredSignature = null;
     this.publishFailed = false;
     this.discoveryFailed = false;
@@ -314,7 +317,11 @@ export class Irve {
 
   async refreshAll(forceDiscovery, reloadStatic) {
     await this.loadStatic(reloadStatic);
-    const previous = this.readings;
+    // Readings computed with other filters or another static list are not
+    // comparable: no trigger from a configuration change.
+    const basis = JSON.stringify([this.config.minPower, this.config.connector, this.staticAt]);
+    const previous = this.readingsBasis === basis ? this.readings : new Map();
+    this.readingsBasis = basis;
     const read = await this.loadDynamic();
     this.readings = new Map(
       [...this.stations.values()].map((station) => [
@@ -366,21 +373,24 @@ export class Irve {
    */
   async loadStatic(force) {
     const followedIds = this.followed().map((entry) => entry.stationId);
-    const missing = followedIds.some((id) => !this.stations.has(id));
+    // A station added but gone from the national data is looked for once a day only.
+    const missing = followedIds.some((id) => !this.stations.has(id) && !this.notFound.has(id));
     const fresh = this.staticAt !== null && this.now() - this.staticAt < STATIC_TTL_MS;
     if (!force && fresh && !missing) {
       return;
     }
-    // Not more than once a cycle after a failure: the next cycle tries again.
+    // Not more than once a cycle after a failure: the next cycle tries again
+    // (staticAt is cleared), and the previous area stays in use meanwhile.
     let key = null;
+    let center = null;
     try {
-      this.center = await this.resolveCenter();
-      key = this.staticKey(followedIds);
+      center = await this.resolveCenter();
+      key = this.staticKey(center, followedIds);
       const rows = [];
-      this.radiusKm = null;
-      if (this.center) {
-        const area = await readArea(this.fetch, this.center, this.config.radiusKm);
-        this.radiusKm = area.radiusKm;
+      let radiusKm = null;
+      if (center) {
+        const area = await readArea(this.fetch, center, this.config.radiusKm);
+        radiusKm = area.radiusKm;
         rows.push(...area.rows);
       }
       const stations = buildStations(rows);
@@ -395,7 +405,10 @@ export class Irve {
           stations.set(id, station);
         }
       }
+      this.center = center;
+      this.radiusKm = radiusKm;
       this.stations = stations;
+      this.notFound = new Set(followedIds.filter((id) => !stations.has(id)));
       this.staticAt = this.now();
       if (this.staticError) {
         logger.info('Station list back');
@@ -408,15 +421,18 @@ export class Irve {
         logger.warn(`Station list unavailable: ${err.message}`);
       }
       this.staticError = err.message;
-      if (this.stations.size === 0) {
-        await this.loadCache(key);
+      this.staticAt = null;
+      // Nothing read yet: the position found is shown by the status all the same.
+      this.center ??= center;
+      if (this.stations.size === 0 && key !== null) {
+        await this.loadCache(key, center);
       }
     }
   }
 
   /** What the station list depends on: position, radius, station ids. */
-  staticKey(followedIds) {
-    const { lat, lon } = this.center ?? {};
+  staticKey(center, followedIds) {
+    const { lat, lon } = center ?? {};
     return JSON.stringify([lat, lon, this.config.radiusKm, this.config.stationIds, followedIds]);
   }
 
@@ -440,7 +456,7 @@ export class Irve {
   }
 
   /** The station list kept in /data, if it was read for the same settings, this week. */
-  async loadCache(key) {
+  async loadCache(key, center) {
     if (!this.dataDir) {
       return;
     }
@@ -450,6 +466,7 @@ export class Irve {
         return;
       }
       this.stations = new Map(document.stations.map((station) => [station.id, station]));
+      this.center = center;
       this.radiusKm = document.radiusKm;
       logger.info(`Using the station list kept from ${new Date(document.at).toISOString()}`);
     } catch {
@@ -537,10 +554,10 @@ export class Irve {
       events.push({ key: TRIGGERS.OUT_OF_SERVICE, data });
     }
     if (after.free > before.free) {
-      const wasFull = before.free === 0 && before.inService > 0;
+      const wasFull = isFull(before);
       events.push({ key: TRIGGERS.POINT_FREED, data: { ...data, was_full: wasFull ? '1' : '0' } });
     }
-    if (before.free > 0 && after.free === 0 && after.inService > 0) {
+    if (before.free > 0 && isFull(after)) {
       events.push({ key: TRIGGERS.FULL, data });
     }
     return events;
@@ -580,7 +597,7 @@ export class Irve {
     if (allOutOfService(reading)) {
       return say(TEXT, language, 'outOfService');
     }
-    if (reading.free === 0) {
+    if (isFull(reading)) {
       return say(TEXT, language, 'full');
     }
     return say(TEXT, language, 'counts', reading);
@@ -632,8 +649,23 @@ export class Irve {
     if (query.length < 3) {
       return render(REPORTS, 'shortQuery');
     }
-    const { rows } = await readPages(this.fetch, () => searchUrl(query), { maxRows: 200 });
-    const stations = [...buildStations(rows).values()];
+    // The search is case-sensitive and addresses are written either way
+    // ("Blagnac", "BLAGNAC"): the text as typed, capitalized, then in capitals.
+    // Short words ("du", "la") stay in lower case, as in most addresses.
+    const capitalized = query
+      .toLowerCase()
+      .replace(
+        /(^|[\s'-])(\p{L})(?=\p{L}{2})/gu,
+        (m, before, letter) => before + letter.toUpperCase(),
+      );
+    let stations = [];
+    for (const text of [...new Set([query, capitalized, query.toUpperCase()])]) {
+      const { rows } = await readPages(this.fetch, () => searchUrl(text), { maxRows: 200 });
+      stations = [...buildStations(rows).values()];
+      if (stations.length > 0) {
+        break;
+      }
+    }
     if (stations.length === 0) {
       return render(REPORTS, 'noResult', { query: clip(query, 40) });
     }

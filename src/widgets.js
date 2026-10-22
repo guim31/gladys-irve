@@ -3,14 +3,15 @@
 //
 // - stations: the followed stations, one status row each ("Parking Victor
 //   Hugo" / "2 / 4 libres"), green with a free charge point, red when all
-//   are taken or out of service, grey without live data or out of date.
+//   are taken or out of service, orange with no free point but occupations
+//   unknown, grey without live data or out of date.
 //
 // Budget of the core: 8 components, 2 texts, 1 status (10 rows).
 // -----------------------------------------------------------------------------
 
 import { WIDGET_COLORS } from '@gladysassistant/integration-sdk';
 import { clip, prettyName } from './devices.js';
-import { allOutOfService } from './irve.js';
+import { allOutOfService, isFull } from './irve.js';
 import { TEXT, say } from './messages.js';
 
 export const MAX_ROWS = 10;
@@ -21,10 +22,11 @@ export function stationColor(service, reading) {
   if (!reading || reading.live === 0 || reading.total === 0 || service.isStale(reading)) {
     return WIDGET_COLORS.NEUTRAL;
   }
-  if (allOutOfService(reading) || reading.free === 0) {
+  if (allOutOfService(reading) || isFull(reading)) {
     return WIDGET_COLORS.DANGER;
   }
-  return WIDGET_COLORS.SUCCESS;
+  // No free point, but some occupations unknown: not "all taken".
+  return reading.free > 0 ? WIDGET_COLORS.SUCCESS : WIDGET_COLORS.WARNING;
 }
 
 async function stationsContent(service, { settings, language }) {

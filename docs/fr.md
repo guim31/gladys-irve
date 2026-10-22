@@ -88,7 +88,7 @@ publié en direct, seuls « Points de charge » et « Puissance maximale » sont
 ## Widget du tableau de bord
 
 Le widget **Bornes de recharge** affiche une ligne par station suivie (10 au plus, ou celles choisies
-dans ses réglages) : « 2 / 4 libres » en vert, « tout est occupé » ou « hors service » en rouge, et en
+dans ses réglages) : « 2 / 4 libres » en vert, « tout est occupé » ou « hors service » en rouge, « 0 / 4 libre » en orange quand l'occupation de certains points est inconnue, et en
 gris « donnée périmée » (aucun état depuis 48 h), « pas de données en direct » ou « aucun point
 compatible ».
 
@@ -140,7 +140,7 @@ charge, puissance maximale, distance en km. Utilisez « Continuer seulement si �
   soit environ 230 Mo par jour).
 - **Couverture** : beaucoup d'opérateurs ne publient encore aucun état en direct. Le 22/10/2026,
   à Toulouse, un peu plus de la moitié des points de charge publics en avaient un ; selon les villes,
-  entre un tiers et neuf sur dix. Les stations sans données en direct ne sont pas proposées.
+  entre un quart et neuf sur dix. Les stations sans données en direct ne sont pas proposées.
 - **Âge** : l'horodatage est celui de l'opérateur, en général le dernier **changement** d'état. Une
   station calme peut garder le même état des heures sans que la donnée soit fausse : au-delà de 48 h
   sans aucun changement, elle est marquée périmée ; un point resté sans nouvelle plus de 7 jours est
