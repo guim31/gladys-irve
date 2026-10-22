@@ -1,0 +1,180 @@
+# Puntos de recarga (IRVE)
+
+La **disponibilidad en directo de los puntos de recarga públicos** alrededor de su casa, en Francia,
+según los datos abiertos nacionales IRVE (Infrastructures de Recharge pour Véhicules Électriques): la
+base estática de data.gouv.fr (dirección, operador, potencia, conectores) cruzada con la
+consolidación nacional de los estados en tiempo real de transport.data.gouv.fr. **Sin cuenta ni
+clave.**
+
+Integración no oficial, sin vínculo con los operadores de recarga, data.gouv.fr ni
+transport.data.gouv.fr. Desarrollada sin un coche eléctrico a mano: los datos se comprobaron en
+directo el 22/10/2026, pero sus comentarios son bienvenidos.
+
+## Lo que obtiene
+
+- Un **dispositivo por estación** que añada: puntos de carga libres, puntos de carga, fuera de
+  servicio, potencia máxima y antigüedad del dato.
+- Un **widget** «Estaciones de recarga»: sus estaciones en una línea cada una, en verde cuando un
+  punto está libre, en rojo cuando todo está ocupado o fuera de servicio.
+- Tres **disparadores de escena**: un punto de carga queda libre, estación completa, estación fuera
+  de servicio.
+- Una **acción de escena**: encontrar, entre sus estaciones, la más cercana con un punto libre, con
+  una frase lista para enviar.
+
+## Requisitos
+
+- Gladys Assistant **5.2.0** o posterior.
+- Una vivienda **ubicada** en Gladys (**Configuración → Viviendas**, haga clic en el mapa), o una
+  posición introducida en la configuración.
+- Acceso a Internet desde Gladys. Sin cuenta ni clave de API.
+
+## Instalación
+
+1. En Gladys, abra **Integraciones → Instalar desde GitHub**.
+2. Pegue la dirección `https://github.com/guim31/gladys-irve` e instale.
+3. La pantalla de instalación pide acceso a la **posición de sus viviendas**: solo sirve para buscar
+   las estaciones cercanas. La posición no sale de Gladys: solo el rectángulo de búsqueda se envía a
+   la API de data.gouv.fr.
+
+## Configuración
+
+### Ajustes
+
+- **Vivienda**: el centro de la búsqueda. Vacío: la primera vivienda ubicada.
+- **Otra posición** (opcional): `latitud, longitud`, por ejemplo su lugar de trabajo. Sustituye a la
+  vivienda.
+- **Radio**: 1, 2, 5, 10 o 20 km alrededor de la posición (5 km por defecto). En una zona muy densa
+  el radio se reduce automáticamente; la acción «Estado» lo indica.
+- **Potencia mínima** y **Tipo de conector**: solo se cuentan los puntos de carga que encajan (una
+  estación de cuatro puntos, dos de ellos Combo CCS, cuenta 2 puntos con el filtro «Combo CCS»). Una
+  estación sin ningún punto compatible no se propone.
+- **Otras estaciones**: identificadores de estaciones (`id_station_itinerance`), separados por comas,
+  estén donde estén (20 como máximo). La acción **Buscar una estación** los proporciona.
+- **Actualización**: cada 5, 10 (por defecto) o 15 minutos.
+- **Idioma de nombres y mensajes**: francés por defecto. Los nombres de las funciones se fijan al
+  añadir el dispositivo.
+
+### Añadir estaciones
+
+Guarde la configuración: las estaciones del círculo **que publican su estado en directo** aparecen en
+la pestaña **Descubrir** de la integración, las más cercanas primero (30 como máximo), junto con las
+estaciones indicadas. Añada a Gladys las que utiliza: son sus **estaciones seguidas**. El widget, los
+disparadores y la acción de escena solo tratan con ellas.
+
+Para seguir una estación lejos de casa, ejecute la acción **Buscar una estación** con un nombre de
+municipio o de calle, copie el identificador (`FR…`) en **Otras estaciones** y guarde: aparece en
+Descubrir.
+
+### Comprobar
+
+La acción **Estado** muestra la posición y el radio utilizados, el número de estaciones encontradas y
+cuántas publican datos en directo, la antigüedad de la última lectura, el último error y el número de
+estaciones añadidas.
+
+## Dispositivos
+
+Cada estación añadida se convierte en un dispositivo de solo lectura:
+
+| Función                | Valor                                                                     |
+| ---------------------- | ------------------------------------------------------------------------- |
+| Puntos de carga libres | puntos en servicio y libres                                               |
+| Puntos de carga        | puntos de la estación (que encajan con los filtros)                       |
+| Fuera de servicio      | puntos fuera de servicio                                                  |
+| Potencia máxima        | potencia del punto más potente, en kW                                     |
+| Antigüedad del dato    | minutos desde el estado más reciente publicado por el operador (máx. 7 d) |
+
+Un punto «ocupado» o «reservado» no está ni libre ni fuera de servicio; un punto con estado
+«desconocido», o cuyo último estado tiene más de 7 días, no se cuenta en ningún sitio. Sin ningún
+punto publicado en directo, solo se actualizan «Puntos de carga» y «Potencia máxima».
+
+## Widget del panel
+
+El widget **Estaciones de recarga** muestra una línea por estación seguida (10 como máximo, o las
+elegidas en sus ajustes): «2 / 4 libres» en verde, «todo ocupado» o «fuera de servicio» en rojo, «0 / 4 libres» en naranja cuando se desconoce la ocupación de algunos puntos, y en
+gris «dato caducado» (ningún estado desde hace 48 h), «sin datos en directo» o «ningún punto
+compatible».
+
+## Disparadores de escena
+
+Cada disparador puede limitarse a algunas estaciones (vacío: cualquier estación seguida) y ofrece
+las variables nombre de la estación, dirección, puntos libres, puntos de carga, fuera de servicio,
+potencia máxima y distancia (km).
+
+- **Un punto de carga queda libre**: la estación tiene más puntos libres que en la lectura anterior.
+  El campo **Estación antes** permite reaccionar solo si **estaba completa**, o al contrario si ya
+  tenía un punto libre.
+- **Estación completa**: todos los puntos en servicio están ahora ocupados.
+- **Estación fuera de servicio**: todos los puntos con estado conocido están fuera de servicio.
+
+Los disparadores solo comparan dos lecturas cercanas: no se dispara nada al volver de un corte, ni
+para una estación cuyo dato está caducado.
+
+## Acción de escena
+
+**Buscar la estación libre más cercana**: entre sus estaciones seguidas (todas, o las elegidas), la
+más cercana a la posición configurada con un punto libre y un dato reciente. Resultados: `found` (1
+o 0), `sentence` (por ejemplo «TOULOUSE - 9 Boulevard d'Arcole: 2 puntos de carga libres de 4, hasta
+22,1 kW, a 0,7 km.»), nombre de la estación, dirección, puntos libres, puntos de carga, potencia
+máxima, distancia en km. Use «Continuar solo si» con `found` = 1 antes de enviar la frase.
+
+## Ejemplos de escenas
+
+- **Avisar cuando el punto de recarga de su calle quede libre**: disparador «Un punto de carga queda
+  libre», la estación de su calle, «Estación antes: estaba completa»; acción «Enviar un mensaje» con
+  el nombre de la estación y el número de puntos libres.
+- **¿Dónde recargar antes de salir?**: disparador manual o alarma de la mañana; acción «Buscar la
+  estación libre más cercana», luego «Continuar solo si» `found` = 1, luego envíe `sentence` por
+  mensaje o haga que lo diga un altavoz.
+- **Avisar si la estación de la oficina se avería**: disparador «Estación fuera de servicio» en la
+  estación de la oficina; acción «Enviar un mensaje».
+
+## Datos y actualización
+
+- **Base estática**: la consolidación nacional de data.gouv.fr (conjunto «Base nationale des
+  IRVE», actualizado a diario), consultada mediante la API tabular de data.gouv.fr sobre el
+  rectángulo que rodea el círculo, o por identificadores de estaciones: unos cientos de filas en
+  lugar del archivo completo. Leída **una vez al día** y en cada cambio de configuración.
+- **Datos dinámicos**: la consolidación nacional IRVE dinámica de transport.data.gouv.fr (beta),
+  generada en cada petición a partir de los flujos de los operadores que publican uno. Unos 125 000
+  puntos de carga, 9 MB (1,6 MB comprimido): el archivo se lee línea a línea y solo se guardan en
+  memoria los puntos de sus estaciones. Leído al ritmo elegido (10 minutos por defecto, unos 230 MB
+  al día).
+- **Cobertura**: muchos operadores aún no publican ningún estado en directo. El 22/10/2026, en
+  Toulouse, algo más de la mitad de los puntos de carga públicos tenían uno; según la ciudad, entre
+  un cuarto y nueve de cada diez. Las estaciones sin datos en directo no se proponen.
+- **Antigüedad**: la marca de tiempo es la del operador, en general el último **cambio** de estado.
+  Una estación tranquila puede mantener el mismo estado durante horas sin que el dato sea falso: tras
+  48 h sin ningún cambio se marca como caducada; un punto sin novedades desde hace más de 7 días se
+  ignora.
+- Licencia: Licence Ouverte / Open Licence 2.0 (Etalab).
+
+## Solución de problemas
+
+- **Nada en Descubrir**: ejecute **Estado**. «Sin posición»: ubique la vivienda en Gladys o
+  introduzca una posición. «0 con datos en directo»: los operadores de su zona no publican estado en
+  directo; amplíe el radio o relaje los filtros.
+- **Identificadores de estaciones desconocidos** en **Estado**: compruebe el identificador con
+  **Buscar una estación** (el operador puede haber renombrado la estación).
+- **«Dato caducado»**: el operador no ha publicado nada para esta estación desde hace 48 h.
+- **Error `tabular-api.data.gouv.fr` o `proxy.transport.data.gouv.fr`**: el servicio no está
+  disponible temporalmente; los últimos valores siguen visibles y la integración lo vuelve a
+  intentar en el siguiente ciclo.
+- Registros detallados con la variable `LOG_LEVEL=debug`.
+
+## Limitaciones
+
+- Datos abiertos, sin garantía: un punto «libre» puede estar ocupado cuando usted llegue, y algunos
+  operadores publican estados erróneos o antiguos.
+- Solo los **puntos de recarga públicos de Francia** declarados en la base nacional IRVE.
+- Sin tarifas, sin reserva, sin control: la integración solo lee.
+- Los nombres de las estaciones son los de los operadores, a veces en mayúsculas o poco claros.
+- El filtro de conector se basa en la declaración del operador; no se utiliza el estado por
+  conector.
+
+## Créditos
+
+- Datos: [Base nationale des IRVE](https://www.data.gouv.fr/datasets/5448d3e0c751df01f85d0572/)
+  (data.gouv.fr, Etalab) y
+  [consolidación IRVE dinámica](https://transport.data.gouv.fr/datasets/685965d0ab901919e14a4a1b)
+  (transport.data.gouv.fr), Licence Ouverte 2.0.
+- Integración escrita por guim31, con licencia Apache-2.0.

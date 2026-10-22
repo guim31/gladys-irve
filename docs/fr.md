@@ -1,67 +1,179 @@
-# Template de démonstration
+# Bornes de recharge (IRVE)
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+La **disponibilité en direct des bornes de recharge publiques** autour de chez vous, en France, d'après
+les données ouvertes nationales IRVE (Infrastructures de Recharge pour Véhicules Électriques) : la base
+statique de data.gouv.fr (adresse, opérateur, puissance, prises) croisée avec la consolidation
+nationale des états en temps réel de transport.data.gouv.fr. **Sans compte ni clé.**
+
+Intégration non officielle, sans lien avec les opérateurs de recharge, data.gouv.fr ni
+transport.data.gouv.fr. Développée sans voiture électrique sous la main : les données ont été
+vérifiées en direct le 22/10/2026, mais vos retours sont les bienvenus.
 
 ## Ce que vous obtenez
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+- Un **appareil par station** que vous ajoutez : points de charge libres, points de charge, hors
+  service, puissance maximale et âge de la donnée.
+- Un **widget** « Bornes de recharge » : vos stations sur une ligne chacune, en vert quand un point
+  est libre, en rouge quand tout est occupé ou hors service.
+- Trois **déclencheurs de scène** : une borne se libère, station complète, station hors service.
+- Une **action de scène** : trouver, parmi vos stations, la plus proche avec un point libre, avec
+  une phrase prête à envoyer.
+
+## Prérequis
+
+- Gladys Assistant **5.2.0** ou plus récent.
+- Une maison **localisée** dans Gladys (**Paramètres → Maisons**, cliquez sur la carte), ou une
+  position saisie dans la configuration.
+- Un accès à Internet depuis Gladys. Aucun compte, aucune clé d'API.
+
+## Installation
+
+1. Dans Gladys, ouvrez **Intégrations → Installer depuis GitHub**.
+2. Collez l'adresse `https://github.com/guim31/gladys-irve` et installez.
+3. L'écran d'installation demande l'accès à la **position de vos maisons** : il sert uniquement à
+   chercher les stations proches. La position ne quitte pas Gladys : seul le rectangle de recherche
+   est envoyé à l'API de data.gouv.fr.
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+### Réglages
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+- **Maison** : le centre de la recherche. Vide : la première maison localisée.
+- **Autre position** (facultatif) : `latitude, longitude`, par exemple votre lieu de travail. Elle
+  remplace la maison.
+- **Rayon** : 1, 2, 5, 10 ou 20 km autour de la position (5 km par défaut). Dans une zone très dense,
+  le rayon est réduit automatiquement ; l'action « État » le signale.
+- **Puissance minimale** et **Type de prise** : seuls les points de charge qui conviennent sont
+  comptés (une station de quatre points dont deux en Combo CCS compte 2 points avec le filtre
+  « Combo CCS »). Une station sans aucun point compatible n'est pas proposée.
+- **Autres stations** : des identifiants de stations (`id_station_itinerance`), séparés par des
+  virgules, où qu'elles soient (20 au plus). L'action **Chercher une station** les donne.
+- **Rafraîchissement** : toutes les 5, 10 (par défaut) ou 15 minutes.
+- **Langue des noms et messages** : français par défaut. Les noms des fonctionnalités sont figés à
+  l'ajout de l'appareil.
 
-## Actions
+### Ajouter des stations
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+Enregistrez la configuration : les stations du cercle **qui publient leur état en direct** apparaissent
+dans l'onglet **Découverte** de l'intégration, les plus proches d'abord (30 au plus), ainsi que les
+stations listées. Ajoutez à Gladys celles que vous utilisez : ce sont vos **stations suivies**. Le
+widget, les déclencheurs et l'action de scène ne portent que sur elles.
 
-## Scènes
+Pour suivre une station loin de chez vous, lancez l'action **Chercher une station** avec un nom de
+commune ou de rue, copiez l'identifiant (`FR…`) dans **Autres stations**, enregistrez : elle apparaît
+dans Découverte.
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+### Vérifier
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+L'action **État** affiche la position et le rayon utilisés, le nombre de stations trouvées et
+combien publient des données en direct, l'âge de la dernière lecture, la dernière erreur et le
+nombre de stations ajoutées.
 
-## Tableau de bord
+## Appareils
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Chaque station ajoutée devient un appareil en lecture seule :
+
+| Fonctionnalité          | Valeur                                                                 |
+| ----------------------- | ---------------------------------------------------------------------- |
+| Points de charge libres | points en service et libres                                            |
+| Points de charge        | points de la station (qui conviennent aux filtres)                     |
+| Hors service            | points hors service                                                    |
+| Puissance maximale      | puissance du point le plus puissant, en kW                             |
+| Âge de la donnée        | minutes depuis l'état le plus récent publié par l'opérateur (7 j max.) |
+
+Un point « occupé » ou « réservé » n'est ni libre ni hors service ; un point dont l'état est
+« inconnu », ou dont le dernier état a plus de 7 jours, n'est compté nulle part. Sans aucun point
+publié en direct, seuls « Points de charge » et « Puissance maximale » sont mis à jour.
+
+## Widget du tableau de bord
+
+Le widget **Bornes de recharge** affiche une ligne par station suivie (10 au plus, ou celles choisies
+dans ses réglages) : « 2 / 4 libres » en vert, « tout est occupé » ou « hors service » en rouge, « 0 / 4 libre » en orange quand l'occupation de certains points est inconnue, et en
+gris « donnée périmée » (aucun état depuis 48 h), « pas de données en direct » ou « aucun point
+compatible ».
+
+## Déclencheurs de scène
+
+Chaque déclencheur peut se limiter à certaines stations (vide : n'importe quelle station suivie) et
+fournit les variables nom de la station, adresse, points libres, points de charge, hors service,
+puissance maximale et distance (km).
+
+- **Une borne se libère** : la station a plus de points libres qu'à la lecture précédente. Le champ
+  **Station avant** permet de ne réagir que si elle **était complète**, ou au contraire si elle
+  avait déjà un point libre.
+- **Station complète** : tous les points en service sont désormais occupés.
+- **Station hors service** : tous les points à l'état connu sont hors service.
+
+Les déclencheurs ne comparent que deux lectures rapprochées : rien n'est déclenché au retour d'une
+coupure, ni pour une station dont la donnée est périmée.
+
+## Action de scène
+
+**Trouver la borne libre la plus proche** : parmi vos stations suivies (toutes, ou celles choisies),
+la plus proche de la position configurée qui a un point libre et une donnée récente. Résultats :
+`found` (1 ou 0), `sentence` (par exemple « TOULOUSE - 9 Boulevard d'Arcole : 2 points de charge
+libres sur 4, jusqu'à 22,1 kW, à 0,7 km. »), nom de la station, adresse, points libres, points de
+charge, puissance maximale, distance en km. Utilisez « Continuer seulement si » avec
+`found` = 1 avant d'envoyer la phrase.
+
+## Exemples de scènes
+
+- **Prévenir quand la borne de la rue se libère** : déclencheur « Une borne se libère », station de
+  votre rue, « Station avant : était complète » ; action « Envoyer un message » avec le nom de la
+  station et le nombre de points libres.
+- **Où recharger avant de partir ?** : déclencheur manuel ou alarme du matin ; action « Trouver la
+  borne libre la plus proche », puis « Continuer seulement si » `found` = 1, puis envoyez `sentence`
+  par message ou faites-la dire par une enceinte.
+- **Alerter si la station du bureau tombe en panne** : déclencheur « Station hors service » sur la
+  station du bureau ; action « Envoyer un message ».
+
+## Données et rafraîchissement
+
+- **Base statique** : la consolidation nationale de data.gouv.fr (jeu « Base nationale des IRVE »,
+  mise à jour quotidienne), interrogée par l'API tabulaire de data.gouv.fr sur le rectangle qui
+  entoure le cercle, ou par identifiants de stations : quelques centaines de lignes au lieu du
+  fichier entier. Lue **une fois par jour** et à chaque changement de configuration.
+- **Données dynamiques** : la consolidation nationale IRVE dynamique de transport.data.gouv.fr
+  (bêta), reconstruite à chaque demande à partir des flux des opérateurs qui en publient. Environ
+  125 000 points de charge, 9 Mo (1,6 Mo compressé) : le fichier est lu ligne à ligne et seuls les
+  points de vos stations sont gardés en mémoire. Lu à la cadence choisie (10 minutes par défaut,
+  soit environ 230 Mo par jour).
+- **Couverture** : beaucoup d'opérateurs ne publient encore aucun état en direct. Le 22/10/2026,
+  à Toulouse, un peu plus de la moitié des points de charge publics en avaient un ; selon les villes,
+  entre un quart et neuf sur dix. Les stations sans données en direct ne sont pas proposées.
+- **Âge** : l'horodatage est celui de l'opérateur, en général le dernier **changement** d'état. Une
+  station calme peut garder le même état des heures sans que la donnée soit fausse : au-delà de 48 h
+  sans aucun changement, elle est marquée périmée ; un point resté sans nouvelle plus de 7 jours est
+  ignoré.
+- Licence : Licence Ouverte / Open Licence 2.0 (Etalab).
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **Rien dans Découverte** : lancez **État**. « Aucune position » : localisez la maison dans
+  Gladys ou saisissez une position. « 0 avec données en direct » : les opérateurs de votre zone ne
+  publient pas d'état en direct ; élargissez le rayon ou relâchez les filtres.
+- **Identifiants de stations inconnus** dans **État** : vérifiez l'identifiant avec
+  **Chercher une station** (la station a pu être renommée par l'opérateur).
+- **« Donnée périmée »** : l'opérateur n'a rien publié depuis 48 h pour cette station.
+- **Erreur `tabular-api.data.gouv.fr` ou `proxy.transport.data.gouv.fr`** : le service est
+  momentanément indisponible ; les dernières valeurs restent affichées et l'intégration réessaie au
+  cycle suivant.
+- Les journaux détaillés s'obtiennent avec la variable `LOG_LEVEL=debug`.
+
+## Limites
+
+- Données open data, sans garantie : un point « libre » peut être pris le temps d'arriver, et
+  certains opérateurs publient des états faux ou anciens.
+- Uniquement les bornes **publiques en France** déclarées dans la base nationale IRVE.
+- Pas de tarifs ni de réservation, et pas de commande : l'intégration ne fait que lire.
+- Les noms des stations sont ceux des opérateurs, parfois en majuscules ou peu parlants.
+- Le filtre de prise s'appuie sur la déclaration de l'opérateur ; l'état par prise n'est pas
+  utilisé.
+
+## Crédits
+
+- Données : [Base nationale des IRVE](https://www.data.gouv.fr/datasets/5448d3e0c751df01f85d0572/)
+  (data.gouv.fr, Etalab) et
+  [consolidation IRVE dynamique](https://transport.data.gouv.fr/datasets/685965d0ab901919e14a4a1b)
+  (transport.data.gouv.fr), Licence Ouverte 2.0.
+- Intégration écrite par guim31, sous licence Apache-2.0.

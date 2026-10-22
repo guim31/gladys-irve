@@ -1,0 +1,179 @@
+# Ladestationen (IRVE)
+
+Die **Live-Verfügbarkeit öffentlicher Ladestationen** rund um dein Zuhause in Frankreich, aus den
+nationalen Open Data IRVE (Infrastructures de Recharge pour Véhicules Électriques): die statische
+Datenbank von data.gouv.fr (Adresse, Betreiber, Leistung, Stecker) verknüpft mit der nationalen
+Konsolidierung der Echtzeit-Zustände von transport.data.gouv.fr. **Kein Konto, kein Schlüssel.**
+
+Inoffizielle Integration, ohne Verbindung zu den Ladebetreibern, data.gouv.fr oder
+transport.data.gouv.fr. Ohne Elektroauto entwickelt: Die Daten wurden am 22.10.2026 live geprüft,
+aber Rückmeldungen sind willkommen.
+
+## Was du bekommst
+
+- Ein **Gerät pro Station**, die du hinzufügst: freie Ladepunkte, Ladepunkte, außer Betrieb,
+  maximale Leistung und Alter der Daten.
+- Ein **Widget** „Ladestationen“: deine Stationen mit je einer Zeile, grün wenn ein Punkt frei ist,
+  rot wenn alles belegt oder außer Betrieb ist.
+- Drei **Szenen-Auslöser**: ein Ladepunkt wird frei, Station voll belegt, Station außer Betrieb.
+- Eine **Szenen-Aktion**: unter deinen Stationen die nächste mit einem freien Punkt finden, mit
+  einem fertigen Satz zum Versenden.
+
+## Voraussetzungen
+
+- Gladys Assistant **5.2.0** oder neuer.
+- Ein Zuhause **mit Standort** in Gladys (**Einstellungen → Zuhause**, auf die Karte klicken) oder
+  eine in der Konfiguration eingegebene Position.
+- Internetzugang von Gladys aus. Kein Konto, kein API-Schlüssel.
+
+## Installation
+
+1. Öffne in Gladys **Integrationen → Von GitHub installieren**.
+2. Füge die Adresse `https://github.com/guim31/gladys-irve` ein und installiere.
+3. Der Installationsbildschirm fragt nach Zugriff auf die **Position deiner Häuser**: Diese dient nur
+   dazu, die Stationen in der Nähe zu finden. Die Position verlässt Gladys nicht: Nur das
+   Suchrechteck wird an die API von data.gouv.fr gesendet.
+
+## Konfiguration
+
+### Einstellungen
+
+- **Zuhause**: der Mittelpunkt der Suche. Leer: das erste Zuhause mit Standort.
+- **Andere Position** (optional): `Breitengrad, Längengrad`, zum Beispiel deine Arbeit. Diese ersetzt
+  das Zuhause.
+- **Radius**: 1, 2, 5, 10 oder 20 km um die Position (standardmäßig 5 km). In einem sehr dichten
+  Gebiet wird der Radius automatisch verkleinert; die Aktion „Status“ zeigt es an.
+- **Mindestleistung** und **Steckertyp**: Nur die passenden Ladepunkte werden gezählt (eine Station
+  mit vier Punkten, davon zwei Combo CCS, zählt mit dem Filter „Combo CCS“ 2 Punkte). Eine Station
+  ohne passenden Punkt wird nicht angeboten.
+- **Weitere Stationen**: Stations-IDs (`id_station_itinerance`), durch Kommas getrennt, egal wo
+  (höchstens 20). Die Aktion **Station suchen** liefert sie.
+- **Aktualisierung**: alle 5, 10 (Standard) oder 15 Minuten.
+- **Sprache der Namen und Nachrichten**: standardmäßig Französisch. Die Namen der Funktionen werden
+  beim Hinzufügen des Geräts festgelegt.
+
+### Stationen hinzufügen
+
+Speichere die Konfiguration: Die Stationen im Kreis, **die ihren Zustand live veröffentlichen**,
+erscheinen im Tab **Entdecken** der Integration, die nächsten zuerst (höchstens 30), dazu die
+aufgelisteten Stationen. Füge die, die du nutzt, zu Gladys hinzu: Das sind deine **verfolgten
+Stationen**. Widget, Auslöser und Szenen-Aktion betreffen nur sie.
+
+Um eine weit entfernte Station zu verfolgen, starte die Aktion **Station suchen** mit einem Orts-
+oder Straßennamen, kopiere die ID (`FR…`) in **Weitere Stationen** und speichere: Die Station erscheint in
+„Entdecken“.
+
+### Prüfen
+
+Die Aktion **Status** zeigt die verwendete Position und den Radius, die Zahl der gefundenen
+Stationen und wie viele Live-Daten veröffentlichen, das Alter der letzten Abfrage, den letzten
+Fehler und die Zahl der hinzugefügten Stationen.
+
+## Geräte
+
+Jede hinzugefügte Station wird ein schreibgeschütztes Gerät:
+
+| Funktion          | Wert                                                                        |
+| ----------------- | --------------------------------------------------------------------------- |
+| Freie Ladepunkte  | Punkte in Betrieb und frei                                                  |
+| Ladepunkte        | Punkte der Station (die zu den Filtern passen)                              |
+| Außer Betrieb     | Punkte außer Betrieb                                                        |
+| Maximale Leistung | Leistung des stärksten Punkts, in kW                                        |
+| Alter der Daten   | Minuten seit dem neuesten vom Betreiber veröffentlichten Zustand (max. 7 T) |
+
+Ein „belegter“ oder „reservierter“ Punkt ist weder frei noch außer Betrieb; ein Punkt mit
+„unbekanntem“ Zustand oder mit einem letzten Zustand älter als 7 Tage wird nirgends gezählt. Ohne
+live veröffentlichten Punkt werden nur „Ladepunkte“ und „Maximale Leistung“ aktualisiert.
+
+## Dashboard-Widget
+
+Das Widget **Ladestationen** zeigt eine Zeile pro verfolgter Station (höchstens 10, oder die in
+seinen Einstellungen gewählten): „2 / 4 frei“ in Grün, „alle belegt“ oder „außer Betrieb“ in Rot, „0 / 4 frei“ in Orange, wenn die Belegung einiger Punkte unbekannt ist,
+und in Grau „Daten veraltet“ (kein Zustand seit 48 h), „keine Live-Daten“ oder „kein passender
+Ladepunkt“.
+
+## Szenen-Auslöser
+
+Jeder Auslöser lässt sich auf bestimmte Stationen beschränken (leer: jede verfolgte Station) und
+liefert die Variablen Stationsname, Adresse, freie Punkte, Ladepunkte, außer Betrieb, maximale
+Leistung und Entfernung (km).
+
+- **Ein Ladepunkt wird frei**: Die Station hat mehr freie Punkte als bei der letzten Abfrage. Mit
+  dem Feld **Station vorher** reagiert er nur, wenn sie **voll belegt war**, oder umgekehrt, wenn
+  sie schon einen freien Punkt hatte.
+- **Station voll belegt**: Alle betriebsbereiten Punkte sind jetzt belegt.
+- **Station außer Betrieb**: Alle Punkte mit bekanntem Zustand sind außer Betrieb.
+
+Die Auslöser vergleichen nur zwei nahe Abfragen: Nach einem Ausfall wird nichts ausgelöst, ebenso
+wenig für eine Station mit veralteten Daten.
+
+## Szenen-Aktion
+
+**Nächste freie Ladestation finden**: unter deinen verfolgten Stationen (allen oder den gewählten)
+die der konfigurierten Position nächste mit einem freien Punkt und aktuellen Daten. Ergebnisse:
+`found` (1 oder 0), `sentence` (zum Beispiel „TOULOUSE - 9 Boulevard d'Arcole: 2 freie Ladepunkte
+von 4, bis 22,1 kW, 0,7 km entfernt.“), Stationsname, Adresse, freie Punkte, Ladepunkte, maximale
+Leistung, Entfernung in km. Nutze „Nur fortfahren, wenn“ mit `found` = 1, bevor du den Satz sendest.
+
+## Szenen-Beispiele
+
+- **Benachrichtigen, wenn die Ladesäule in deiner Straße frei wird**: Auslöser „Ein Ladepunkt wird
+  frei“, die Station deiner Straße, „Station vorher: war voll belegt“; Aktion „Nachricht senden“
+  mit dem Stationsnamen und der Zahl der freien Punkte.
+- **Wo vor der Abfahrt laden?**: manueller Auslöser oder Morgenwecker; Aktion „Nächste freie
+  Ladestation finden“, dann „Nur fortfahren, wenn“ `found` = 1, dann `sentence` als Nachricht
+  senden oder von einem Lautsprecher sagen lassen.
+- **Warnen, wenn die Station im Büro ausfällt**: Auslöser „Station außer Betrieb“ für die Station
+  im Büro; Aktion „Nachricht senden“.
+
+## Daten und Aktualisierung
+
+- **Statische Datenbank**: die nationale Konsolidierung von data.gouv.fr (Datensatz „Base nationale
+  des IRVE“, täglich aktualisiert), abgefragt über die Tabellen-API von data.gouv.fr für das
+  Rechteck um den Kreis oder per Stations-ID: einige hundert Zeilen statt der ganzen Datei.
+  **Einmal täglich** und bei jeder Konfigurationsänderung gelesen.
+- **Dynamische Daten**: die nationale dynamische IRVE-Konsolidierung von transport.data.gouv.fr
+  (Beta), bei jeder Anfrage aus den Feeds der Betreiber erstellt, die einen veröffentlichen. Etwa
+  125.000 Ladepunkte, 9 MB (1,6 MB komprimiert): Die Datei wird Zeile für Zeile gelesen und nur die
+  Punkte deiner Stationen bleiben im Speicher. Im gewählten Takt gelesen (standardmäßig 10 Minuten,
+  etwa 230 MB pro Tag).
+- **Abdeckung**: Viele Betreiber veröffentlichen noch keinen Live-Zustand. Am 22.10.2026 hatte in
+  Toulouse etwas mehr als die Hälfte der öffentlichen Ladepunkte einen; je nach Stadt zwischen einem
+  Viertel und neun von zehn. Stationen ohne Live-Daten werden nicht angeboten.
+- **Alter**: Der Zeitstempel ist der des Betreibers, meist die letzte **Änderung** des Zustands.
+  Eine ruhige Station kann stundenlang denselben Zustand behalten, ohne dass die Daten falsch sind:
+  Nach 48 h ohne Änderung gilt sie als veraltet; ein Punkt ohne Neuigkeit seit mehr als 7 Tagen wird
+  ignoriert.
+- Lizenz: Licence Ouverte / Open Licence 2.0 (Etalab).
+
+## Fehlerbehebung
+
+- **Nichts in „Entdecken“**: Starte **Status**. „Keine Position“: Lege den Standort des Zuhauses in
+  Gladys fest oder gib eine Position ein. „0 mit Live-Daten“: Die Betreiber deiner Gegend
+  veröffentlichen keinen Live-Zustand; vergrößere den Radius oder lockere die Filter.
+- **Unbekannte Stations-IDs** in **Status**: Prüfe die ID mit **Station suchen** (der Betreiber hat
+  die Station vielleicht umbenannt).
+- **„Daten veraltet“**: Der Betreiber hat seit 48 h nichts für diese Station veröffentlicht.
+- **Fehler `tabular-api.data.gouv.fr` oder `proxy.transport.data.gouv.fr`**: Der Dienst ist
+  vorübergehend nicht erreichbar; die letzten Werte bleiben angezeigt und die Integration versucht
+  es im nächsten Zyklus erneut.
+- Ausführliche Protokolle mit der Variable `LOG_LEVEL=debug`.
+
+## Einschränkungen
+
+- Open Data ohne Gewähr: Ein „freier“ Punkt kann bei deiner Ankunft belegt sein, und manche
+  Betreiber veröffentlichen falsche oder alte Zustände.
+- Nur die **öffentlichen Ladestationen in Frankreich**, die in der nationalen IRVE-Datenbank
+  gemeldet sind.
+- Keine Preise, keine Reservierung, keine Steuerung: Die Integration liest nur.
+- Die Stationsnamen sind die der Betreiber, manchmal in Großbuchstaben oder wenig aussagekräftig.
+- Der Steckerfilter stützt sich auf die Angabe des Betreibers; der Zustand pro Stecker wird nicht
+  genutzt.
+
+## Danksagung
+
+- Daten: [Base nationale des IRVE](https://www.data.gouv.fr/datasets/5448d3e0c751df01f85d0572/)
+  (data.gouv.fr, Etalab) und
+  [dynamische IRVE-Konsolidierung](https://transport.data.gouv.fr/datasets/685965d0ab901919e14a4a1b)
+  (transport.data.gouv.fr), Licence Ouverte 2.0.
+- Integration von guim31, unter der Apache-2.0-Lizenz.
