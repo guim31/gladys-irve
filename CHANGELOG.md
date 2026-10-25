@@ -10,6 +10,11 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Fixed
+
+- The widget shows the name given to a station in Gladys (Devices tab), and
+  follows a rename at once, instead of the operator's name.
+
 ## [1.0.0] - 2026-10-22
 
 ### Added

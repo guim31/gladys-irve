@@ -66,6 +66,11 @@ export function registerHandlers(gladys, options = {}) {
 
   gladys.onDeviceCreated(whenReady((device) => service.onDeviceCreated(device)));
 
+  // A station renamed or removed in Gladys: the widget rows follow at once.
+  const refreshWidget = () => gladys.requestWidgetRefresh?.('stations')?.catch?.(() => {});
+  gladys.onDeviceUpdated(refreshWidget);
+  gladys.onDeviceDeleted(refreshWidget);
+
   gladys.onConfigUpdated(whenReady((newConfig) => service.reconfigure(normalizeConfig(newConfig))));
 
   const actions = {

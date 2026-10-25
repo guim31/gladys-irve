@@ -276,6 +276,17 @@ test('widget: one row per station, in the language of the user', async (t) => {
   assert.equal(content.ttl_seconds, 600);
 });
 
+test('widget: a station renamed in Gladys shows its new name at once', async (t) => {
+  const world = await createWorld({ config: { radius_km: '2' } });
+  t.after(() => world.app.stop());
+  const device = await create(world, CIMETIERE);
+  const refreshes = world.fake.widgetRefreshes.length;
+  await world.fake.deviceUpdated({ ...device, name: 'Borne du cimetière' });
+  assert.ok(world.fake.widgetRefreshes.length > refreshes);
+  const content = await widget(world, {}, 'en');
+  assert.equal(content.components[0].items[0].label, 'Borne du cimetière');
+});
+
 test('status: position, stations, live data, stations added', async (t) => {
   const world = await createWorld();
   t.after(() => world.app.stop());
