@@ -51,7 +51,8 @@ async function stationsContent(service, { settings, language }) {
           const found = service.lookup(entry.deviceId);
           const reading = found?.reading ?? null;
           return {
-            label: clip(found ? prettyName(found.station.name) : entry.name, MAX_LABEL),
+            // The name given in Gladys (Devices tab) wins over the operator's.
+            label: clip(entry.name || prettyName(found?.station.name ?? ''), MAX_LABEL),
             value: clip(service.shortText(reading, language), 40),
             color: stationColor(service, reading),
           };
