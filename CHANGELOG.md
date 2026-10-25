@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-25
+
 ### Fixed
 
 - The widget shows the name given to a station in Gladys (Devices tab), and
@@ -37,5 +39,6 @@ the notes of the version's GitHub Release.
   follow a station far from home).
 - Texts and documentation in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-irve/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/guim31/gladys-irve/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-irve/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/guim31/gladys-irve/releases/tag/v1.0.0

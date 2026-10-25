@@ -8,8 +8,8 @@
     "de": "Live-Verfügbarkeit öffentlicher Ladestationen in deiner Nähe in Frankreich (Open Data IRVE).",
     "es": "Disponibilidad en directo de los puntos de recarga públicos cerca de usted en Francia (IRVE)."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/guim31/gladys-irve:1.0.0",
+  "version": "1.0.1",
+  "docker_image": "ghcr.io/guim31/gladys-irve:1.0.1",
   "gladys_version": ">=5.2.0",
   "cover_image": "https://raw.githubusercontent.com/guim31/gladys-irve/main/cover.png",
   "categories": ["energy", "services"],
