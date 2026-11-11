@@ -23,7 +23,7 @@ directo el 22/10/2026, pero sus comentarios son bienvenidos.
 
 ## Requisitos
 
-- Gladys Assistant **5.2.0** o posterior.
+- Gladys Assistant **5.3.0** o posterior.
 - Una vivienda **ubicada** en Gladys (**Configuración → Viviendas**, haga clic en el mapa), o una
   posición introducida en la configuración.
 - Acceso a Internet desde Gladys. Sin cuenta ni clave de API.

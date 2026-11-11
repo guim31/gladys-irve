@@ -21,7 +21,7 @@ aber Rückmeldungen sind willkommen.
 
 ## Voraussetzungen
 
-- Gladys Assistant **5.2.0** oder neuer.
+- Gladys Assistant **5.3.0** oder neuer.
 - Ein Zuhause **mit Standort** in Gladys (**Einstellungen → Zuhause**, auf die Karte klicken) oder
   eine in der Konfiguration eingegebene Position.
 - Internetzugang von Gladys aus. Kein Konto, kein API-Schlüssel.

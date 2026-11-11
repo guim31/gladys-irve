@@ -21,7 +21,7 @@ vérifiées en direct le 22/10/2026, mais vos retours sont les bienvenus.
 
 ## Prérequis
 
-- Gladys Assistant **5.2.0** ou plus récent.
+- Gladys Assistant **5.3.0** ou plus récent.
 - Une maison **localisée** dans Gladys (**Paramètres → Maisons**, cliquez sur la carte), ou une
   position saisie dans la configuration.
 - Un accès à Internet depuis Gladys. Aucun compte, aucune clé d'API.
