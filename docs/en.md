@@ -21,7 +21,7 @@ transport.data.gouv.fr. Developed without an electric car at hand: the data was 
 
 ## Requirements
 
-- Gladys Assistant **5.2.0** or later.
+- Gladys Assistant **5.3.0** or later.
 - A **located** house in Gladys (**Settings → Houses**, click on the map), or a position typed in
   the configuration.
 - Internet access from Gladys. No account, no API key.

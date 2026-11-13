@@ -23,8 +23,8 @@ User documentation: [English](docs/en.md) · [français](docs/fr.md) ·
 | Scene action          | find the nearest followed station with a free point: a sentence and numbers              |
 | Configuration actions | status (position, stations, live data, errors), find a station by town or street         |
 
-Requires Gladys **5.2.0** or later (a house select in the configuration, and
-`location: true` to read the position of the houses).
+Requires Gladys **5.3.0** or later (catalog countries; 5.2.0 for a house select
+in the configuration, and `location: true` to read the position of the houses).
 
 ## Installation
 
