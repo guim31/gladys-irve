@@ -1,6 +1,6 @@
 {
   "name": "gladys-irve",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Gladys Assistant integration: live availability of the public EV charging stations around you in France, from the national IRVE open data.",
   "type": "module",
